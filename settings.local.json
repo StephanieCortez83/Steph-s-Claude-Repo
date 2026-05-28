@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(git worktree:*)",
+      "Skill(cr-panel)",
+      "Bash(git checkout:*)",
+      "Bash(git rebase:*)",
+      "Bash(git add:*)",
+      "Bash(msbuild ACS.sln /p:Configuration=Debug /t:Build /m /nologo /verbosity:minimal)",
+      "Bash(cmd.exe /c \"where MSBuild.exe 2>nul && echo FOUND || echo NOT_FOUND_IN_PATH\")",
+      "Bash(cmd.exe /c \"dir \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\2022\\\\\" /b 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files\\\\Microsoft Visual Studio' -Recurse -Filter 'MSBuild.exe' -ErrorAction SilentlyContinue | Select-Object -First 5 FullName\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\Repos\\\\ACS\\\\ACS.sln' /p:Configuration=Debug /t:Build /m /nologo /verbosity:minimal 2>&1 | Select-Object -Last 50\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\Repos\\\\ACS\\\\ACS.sln' /p:Configuration=Debug /t:Build /m /nologo /verbosity:minimal 2>&1 | Where-Object { \\\\$_ -match 'error|Error|ERROR|warning CS|Build succeeded|FAILED' } | Select-Object -Last 20\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\Repos\\\\ACS\\\\ACS.sln' /p:Configuration=Debug /t:Build /m /nologo /verbosity:minimal 2>&1 | Select-String -Pattern 'Build succeeded|FAILED|Error\\\\\\(s\\\\\\)|Warning\\\\\\(s\\\\\\)'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\Repos\\\\ACS\\\\ACS.sln' /p:Configuration=Debug /t:Build /m /nologo /verbosity:minimal 2>&1 | Select-Object -Last 5\")",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Repos/ACS/**)",
+      "mcp__claude_ai_Atlassian__getJiraIssue",
+      "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
+      "mcp__claude_ai_Atlassian__addCommentToJiraIssue",
+      "mcp__revcycledb__sql_query",
+      "mcp__revcycledb__get_object_definition",
+      "Bash(powershell New-Item -ItemType Junction -Path 'C:\\\\Repos\\\\ACS-5251\\\\packages' -Target 'C:\\\\Repos\\\\ACS\\\\packages':*)",
+      "Read(//c/Repos/ACS-5251/**)",
+      "Bash(powershell \"& 'MSBuild.exe' 'ACS.sln' /noautoresponse /t:CCSBusinessObjects /p:Configuration=Debug /p:Platform='Any CPU' /m /v:minimal 2>&1\")",
+      "Bash(powershell \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\Repos\\\\ACS-5251\\\\ACS.sln' /noautoresponse /t:CCSBusinessObjects /p:Configuration=Debug /p:Platform='Any CPU' /m /v:minimal 2>&1\")",
+      "Bash(Select-String -Pattern \"Build succeeded|Error\\\\\\(s\\\\\\)|CCSBusinessObjects ->\")",
+      "Bash(powershell:*)",
+      "Bash(Remove-Item C:/Repos/ACS-5251/build-out.txt)",
+      "Bash(git -C C:/Repos/ACS show DACS-5251:\"CCSWebApp/WebPages/ChartDemographics.aspx.cs\")",
+      "Bash(git:*)",
+      "Skill(test-plan)"
+    ]
+  }
+}

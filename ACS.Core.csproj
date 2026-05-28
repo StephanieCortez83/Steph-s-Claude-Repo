@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E28AFB48-1C77-49DD-88EB-AE541B291A07}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ACS.Core</RootNamespace>
+    <AssemblyName>ACS.Core</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>None</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'beta|AnyCPU'">
+    <OutputPath>bin\beta\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'beta|x64'">
+    <OutputPath>bin\x64\beta\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AutoFixture, Version=4.17.0.0, Culture=neutral, PublicKeyToken=b24654c590009d4f, processorArchitecture=MSIL">
+      <HintPath>..\packages\AutoFixture.4.17.0\lib\net452\AutoFixture.dll</HintPath>
+    </Reference>
+    <Reference Include="Fare, Version=2.1.0.0, Culture=neutral, PublicKeyToken=ea68d375bf33a7c8, processorArchitecture=MSIL">
+      <HintPath>..\packages\Fare.2.1.1\lib\net35\Fare.dll</HintPath>
+    </Reference>
+    <Reference Include="JWT, Version=9.0.0.0, Culture=neutral, PublicKeyToken=6f98bca0f40f2ecf, processorArchitecture=MSIL">
+      <HintPath>..\packages\JWT.9.0.0\lib\net46\JWT.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PhoneNumbers, Version=8.10.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\libphonenumber-csharp.8.10.4\lib\net40\PhoneNumbers.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attribute\AuditLogIgnoreAttribute.cs" />
+    <Compile Include="Attribute\AuditLogProtectAttribute.cs" />
+    <Compile Include="Common\Attribute\DataSourceAttribute.cs" />
+    <Compile Include="Common\Attribute\IsEmailAddressAttribute.cs" />
+    <Compile Include="Common\Attribute\MaskAttribute.cs" />
+    <Compile Include="Common\Configuration\ConnectionString.cs" />
+    <Compile Include="Common\Regex\Pattern.cs" />
+    <Compile Include="Extensions\AutoFixtureExtensions.cs" />
+    <Compile Include="Extensions\DateTimeExtensions.cs" />
+    <Compile Include="Extensions\GenericTypeExtensions.cs" />
+    <Compile Include="Extensions\IntExtensions.cs" />
+    <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="Extensions\PropertyExtensions.cs" />
+    <Compile Include="Security\JwtTokenGenerator.cs" />
+    <Compile Include="Template\ViewTemplateManager.cs" />
+    <Compile Include="Utility\DateUtility.cs" />
+    <Compile Include="Utility\IpAddressUtility.cs" />
+    <Compile Include="Utility\LosUtility.cs" />
+    <Compile Include="Utility\PhoneNumberUtility.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Sql\ISqlService.cs" />
+    <Compile Include="Sql\SqlServerStoredProcedure.cs" />
+    <Compile Include="Sql\SqlServerTable.cs" />
+    <Compile Include="Sql\SqlServerTypeCode.cs" />
+    <Compile Include="Sql\SqlServerForeignKey.cs" />
+    <Compile Include="Sql\SqlServerColumn.cs" />
+    <Compile Include="Sql\SqlServerEntity.cs" />
+    <Compile Include="Sql\SqlServerExtendedProperty.cs" />
+    <Compile Include="Sql\SqlServerIndex.cs" />
+    <Compile Include="Sql\SqlServerModel.cs" />
+    <Compile Include="Sql\SqlServerView.cs" />
+    <Compile Include="Sql\SqlService.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Sql\SqlServiceException.cs" />
+    <Compile Include="Sql\TypeCode.cs" />
+    <Compile Include="Sql\TypeCodeItem.cs" />
+    <Compile Include="Template\DotNetDataTypeCode.cs" />
+    <Compile Include="Extensions\EnumExtensions.cs" />
+    <Compile Include="Template\SqlTemplateManager.cs" />
+    <Compile Include="Template\TableTemplateManager.cs" />
+    <Compile Include="Template\TemplateManager.cs" />
+    <Compile Include="Template\Template.cs" />
+    <Compile Include="Template\TypeCodeTemplateManager.cs" />
+    <Compile Include="Utility\TextUtility.cs" />
+    <Compile Include="Validation\DataAnnotationsValidator.cs" />
+    <Compile Include="Validation\DateOutOfRangeValidationError.cs" />
+    <Compile Include="Validation\EmailAddressValidationError.cs" />
+    <Compile Include="Validation\InvalidValueValidationError.cs" />
+    <Compile Include="Validation\IValidatedObject.cs" />
+    <Compile Include="Validation\IValidationError.cs" />
+    <Compile Include="Validation\LimitExceededValidationError.cs" />
+    <Compile Include="Validation\MaxLengthValidationError.cs" />
+    <Compile Include="Validation\MinLengthValidationError.cs" />
+    <Compile Include="Validation\NotFoundValidationError.cs" />
+    <Compile Include="Validation\NullValueValidationError.cs" />
+    <Compile Include="Validation\PhoneNumberValidationError.cs" />
+    <Compile Include="Validation\RequiredValidationError.cs" />
+    <Compile Include="Validation\StringLengthValidationError.cs" />
+    <Compile Include="Validation\UniqueValidationError.cs" />
+    <Compile Include="Validation\UniqueValueValidationError.cs" />
+    <Compile Include="Validation\UrlValidationError.cs" />
+    <Compile Include="Validation\ValidationError.cs" />
+    <Compile Include="Validation\ValidationErrorBase.cs" />
+    <Compile Include="Validation\ValidationTypeCode.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
