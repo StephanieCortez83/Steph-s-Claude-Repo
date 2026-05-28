@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ImagesSettings>
+   <images>
+      <index id="0">
+         <AutoCrop Threshold="100"/>
+         <Emboss Direction="0" Depth="500"/>
+         <freeHandWave Scale="100" WaveLength="10" Angle="4500" FillColor="#000000" Flags="17"/>
+         <GammaCorrect Gamma="150"/>
+         <Gaussian Radius="20"/>
+         <Grayscale BitsPerPixel="16"/>
+         <HalfTone Angle="4" Dimension="2" Type="1"/>
+         <HistogramContrast Contrast="500"/>
+         <ChangeHue Angle="100"/>
+         <RemapHue HueTableValue="255" MaskTable="1" Length="256"/>
+         <Median Dimension="10"/>
+         <ChangeSaturation Change="300"/>
+         <ChangeContrast Contrast="500"/>
+         <Sharpen Sharpness="950"/>
+         <SpatialFilter SpatialFilterCommandPredefined="22"/>
+         <UnsharpMask Ammount="400" Radius="15" Threshold="10" ColorType="1"/>
+         <ChangeIntensity Brightness="100"/>
+      </index>
+      <index id="1">
+         <AutoCrop Threshold="100"/>
+         <Emboss Direction="1" Depth="450"/>
+         <freeHandWave Scale="110" WaveLength="10" Angle="4500" FillColor="#000000" Flags="17"/>
+         <GammaCorrect Gamma="50"/>
+         <Gaussian Radius="20"/>
+         <Grayscale BitsPerPixel="16"/>
+         <HalfTone Angle="4" Dimension="2" Type="1"/>
+         <HistogramContrast Contrast="500"/>
+         <ChangeHue Angle="100"/>
+         <RemapHue HueTableValue="141" MaskTable="1" Length="256"/>
+         <Median Dimension="10"/>
+         <ChangeSaturation Change="300"/>
+         <ChangeContrast Contrast="500"/>
+         <Sharpen Sharpness="950"/>
+         <SpatialFilter SpatialFilterCommandPredefined="22"/>
+         <UnsharpMask Ammount="200" Radius="15" Threshold="10" ColorType="1"/>
+         <ChangeIntensity Brightness="100"/>
+      </index>
+      <index id="2">
+         <AutoCrop Threshold="100"/>
+         <Emboss Direction="5" Depth="500"/>
+         <freeHandWave Scale="100" WaveLength="10" Angle="4500" FillColor="#000000" Flags="17"/>
+         <GammaCorrect Gamma="50"/>
+         <Gaussian Radius="20"/>
+         <Grayscale BitsPerPixel="16"/>
+         <HalfTone Angle="4" Dimension="2" Type="1"/>
+         <HistogramContrast Contrast="500"/>
+         <ChangeHue Angle="120"/>
+         <RemapHue HueTableValue="153" MaskTable="1" Length="256"/>
+         <Median Dimension="10"/>
+         <ChangeSaturation Change="300"/>
+         <ChangeContrast Contrast="500"/>
+         <Sharpen Sharpness="950"/>
+         <SpatialFilter SpatialFilterCommandPredefined="24"/>
+         <UnsharpMask Ammount="400" Radius="15" Threshold="10" ColorType="1"/>
+         <ChangeIntensity Brightness="100"/>
+      </index>
+      <index id="3">
+         <AutoCrop Threshold="100"/>
+         <Emboss Direction="1" Depth="600"/>
+         <freeHandWave Scale="100" WaveLength="10" Angle="4500" FillColor="#000000" Flags="17"/>
+         <GammaCorrect Gamma="50"/>
+         <Gaussian Radius="20"/>
+         <Grayscale BitsPerPixel="16"/>
+         <HalfTone Angle="4" Dimension="2" Type="1"/>
+         <HistogramContrast Contrast="500"/>
+         <ChangeHue Angle="130"/>
+         <RemapHue HueTableValue="0" MaskTable="1" Length="256"/>
+         <Median Dimension="10"/>
+         <ChangeSaturation Change="300"/>
+         <ChangeContrast Contrast="500"/>
+         <Sharpen Sharpness="950"/>
+         <SpatialFilter SpatialFilterCommandPredefined="22"/>
+         <UnsharpMask Ammount="400" Radius="15" Threshold="10" ColorType="1"/>
+         <ChangeIntensity Brightness="100"/>
+      </index>
+      <index id="4">
+         <AutoCrop Threshold="120"/>
+         <Emboss Direction="5" Depth="500"/>
+         <freeHandWave Scale="100" WaveLength="10" Angle="4500" FillColor="#000000" Flags="17"/>
+         <GammaCorrect Gamma="50"/>
+         <Gaussian Radius="20"/>
+         <Grayscale BitsPerPixel="16"/>
+         <HalfTone Angle="4" Dimension="2" Type="1"/>
+         <HistogramContrast Contrast="500"/>
+         <ChangeHue Angle="125"/>
+         <RemapHue HueTableValue="125" MaskTable="1" Length="256"/>
+         <Median Dimension="10"/>
+         <ChangeSaturation Change="300"/>
+         <ChangeContrast Contrast="500"/>
+         <Sharpen Sharpness="950"/>
+         <SpatialFilter SpatialFilterCommandPredefined="9"/>
+         <UnsharpMask Ammount="400" Radius="15" Threshold="10" ColorType="1"/>
+         <ChangeIntensity Brightness="100"/>
+      </index>
+   </images>
+</ImagesSettings>
