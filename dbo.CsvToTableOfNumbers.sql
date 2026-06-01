@@ -1,0 +1,20 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE   PROCEDURE [dbo].[CsvToTableOfNumbers]
+(
+	@Csv NVARCHAR(MAX),
+	@Separator NCHAR = ','
+)
+AS
+BEGIN
+	SELECT 
+		DISTINCT RTRIM(LTRIM(value))
+	  FROM 
+		STRING_SPLIT(@Csv, COALESCE(@Separator, ',')) 
+	 WHERE 
+		LEN(RTRIM(LTRIM(value))) > 0;
+END;
+GO

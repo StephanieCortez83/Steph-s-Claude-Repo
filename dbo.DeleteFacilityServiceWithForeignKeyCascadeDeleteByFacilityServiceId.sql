@@ -1,0 +1,58 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE   PROCEDURE [dbo].[DeleteFacilityServiceWithForeignKeyCascadeDeleteByFacilityServiceId] 
+	@FacilityServiceId INT
+WITH EXEC AS CALLER AS
+BEGIN
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	
+	IF @FacilityServiceId <= 0
+		RETURN;
+	
+	-- get our foreign key linked tables.  we cannot delete if any of these have table entries
+	-- not automatically processing FK list because many times such causes unintended side effects when new features added
+	/*
+		RevCycleDB.dbo.FACILITY_SERVICE_EVALUATION: FK_FACILITY_SERVICE_FACILITY_SERVICE_EVALUATION
+		RevCycleDB.dbo.FACILITY_SERVICE_EVALUATION_HISTORY: FK_FACILITY_SERVICE_FACILITY_SERVICE_EVALUATION_HISTORY
+		RevCycleDB.dbo.FACILITY_SERVICE_SECOND_AUDIT_EVALUATION_HISTORY: FK_FACILITY_SERVICE_SECOND_AUDIT_FACILITY_SERVICE_EVALUATION_HISTORY
+		RevCycleDB.dbo.FACILITY_SERVICE_TO_PATIENT_DISPOSITION: FK_FacilityServiceToPatientDisposition_FaciltyServiceId_REF_FacilityService
+	*/	
+	
+	IF EXISTS (SELECT TOP 1 1 FROM [FACILITY_SERVICE_EVALUATION] WHERE [FACILITY_SERVICE_ID] = @FacilityServiceId)
+	BEGIN 
+		THROW 50001 , N'Cannot delete [FACILITY_SERVICE] table records because Foreign Key is in use within table [FACILITY_SERVICE_EVALUATION].', 1
+		RETURN;
+	END;
+	
+	IF EXISTS (SELECT TOP 1 1 FROM [FACILITY_SERVICE_EVALUATION_HISTORY] WHERE [FACILITY_SERVICE_ID] = @FacilityServiceId)
+	BEGIN 
+		THROW 50001 , N'Cannot delete [FACILITY_SERVICE] table records because Foreign Key is in use within table [FACILITY_SERVICE_EVALUATION_HISTORY].', 1
+		RETURN;
+	END;
+
+	IF EXISTS (SELECT TOP 1 1 FROM [FACILITY_SERVICE_SECOND_AUDIT_EVALUATION_HISTORY] WHERE [FACILITY_SERVICE_ID] = @FacilityServiceId)
+	BEGIN 
+		THROW 50001 , N'Cannot delete [FACILITY_SERVICE] table records because Foreign Key is in use within table [FACILITY_SERVICE_SECOND_AUDIT_EVALUATION_HISTORY].', 1
+		RETURN;
+	END;
+
+	IF EXISTS (SELECT TOP 1 1 FROM [FACILITY_SERVICE_TO_PATIENT_DISPOSITION] WHERE [FACILTY_SERVICE_ID] = @FacilityServiceId)
+	BEGIN 
+		THROW 50001 , N'Cannot delete [FACILITY_SERVICE] table records because Foreign Key is in use within table [FACILITY_SERVICE_TO_PATIENT_DISPOSITION].', 1
+		RETURN;
+	END;
+	
+	-- Delete entries from the primary target
+	IF EXISTS (SELECT TOP 1 1 FROM [FACILITY_SERVICE] WHERE [FACILITY_SERVICE_ID] = @FacilityServiceId)
+		DELETE FROM 
+			[FACILITY_SERVICE] 
+		WHERE 
+			[FACILITY_SERVICE_ID] = @FacilityServiceId;
+
+END -- end procedure
+
+GO
