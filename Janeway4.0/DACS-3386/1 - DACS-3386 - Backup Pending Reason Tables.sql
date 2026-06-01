@@ -1,0 +1,2 @@
+EXEC [dbo].[Maintenance_BackupTable] @SrcTable = 'PENDING_REASON', @DestTable = 'PENDING_REASON_DACS-3386'
+EXEC [dbo].[Maintenance_BackupTable] @SrcTable = 'SERVICE_AGREEMENT_PENDING_REASON', @DestTable = 'SERVICE_AGREEMENT_PENDING_REASON_DACS-3386'
