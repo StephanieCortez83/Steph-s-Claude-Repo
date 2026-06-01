@@ -1,0 +1,36 @@
+USE [RevCycleDB]
+GO
+
+CREATE   PROCEDURE [dbo].[PORTAL_ANNOUNCEMENT_INSERT]
+	@MODULE_ID int
+	,@TITLE nvarchar(150)
+	,@MORE_LINK nvarchar(150)
+	,@EFFECTIVE_DATE datetime
+	,@EXPIRE_DATE datetime
+	,@DESCRIPTION nvarchar(2000)
+	,@CREATION_DATE_TIME datetime
+	,@CREATING_USER_PROFILE_ID int
+AS
+BEGIN
+	INSERT INTO [dbo].[PORTAL_ANNOUNCEMENT]
+           ([MODULE_ID]
+           ,[TITLE]
+           ,[MORE_LINK]
+		   ,[EFFECTIVE_DATE]
+           ,[EXPIRE_DATE]
+           ,[DESCRIPTION]
+           ,[CREATION_DATE_TIME]
+           ,[CREATING_USER_PROFILE_ID])
+     VALUES
+           (@MODULE_ID,
+           @TITLE,
+           @MORE_LINK,
+		   @EFFECTIVE_DATE,
+           @EXPIRE_DATE,
+           @DESCRIPTION,
+           @CREATION_DATE_TIME,
+           @CREATING_USER_PROFILE_ID)
+END
+GO
+
+
