@@ -1,0 +1,3 @@
+CREATE SCHEMA [RCM\tduke]
+AUTHORIZATION [RCM\tduke]
+GO

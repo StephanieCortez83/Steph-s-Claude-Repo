@@ -1,0 +1,12 @@
+CREATE TABLE [dbo].[CMS_CONTRACTOR_TYPE]
+(
+[CONTRACTOR_TYPE_ID] [int] NOT NULL,
+[DESCRIPTION] [varchar] (50) NULL
+)
+GO
+ALTER TABLE [dbo].[CMS_CONTRACTOR_TYPE] ADD CONSTRAINT [PK__CMS_CONT__57EE521A2086C34C] PRIMARY KEY NONCLUSTERED ([CONTRACTOR_TYPE_ID])
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'Contractor type system identifier', 'SCHEMA', N'dbo', 'TABLE', N'CMS_CONTRACTOR_TYPE', 'COLUMN', N'CONTRACTOR_TYPE_ID'
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'Contractor type description', 'SCHEMA', N'dbo', 'TABLE', N'CMS_CONTRACTOR_TYPE', 'COLUMN', N'DESCRIPTION'
+GO

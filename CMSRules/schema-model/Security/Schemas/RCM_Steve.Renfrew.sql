@@ -1,0 +1,3 @@
+CREATE SCHEMA [RCM\Steve.Renfrew]
+AUTHORIZATION [RCM\Steve.Renfrew]
+GO
