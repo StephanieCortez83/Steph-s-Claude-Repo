@@ -1,0 +1,5 @@
+DROP PROCEDURE IF EXISTS SelectActiveObservationChargeMasterDepartmentByServiceAgreementIdAndTimeOfService
+GO
+
+DROP PROCEDURE IF EXISTS SelectChargeMasterDepartmentById
+GO
