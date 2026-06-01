@@ -1,0 +1,72 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE   PROCEDURE [dbo].[SelectAnySavesPhysicianProcedureEvalCodesUsedForMipsByChartIdAndPqrsCd]   
+	 @ChartId INT
+	,@PqrsCd VARCHAR(20)
+	,@ShowDebug BIT = 0
+AS
+BEGIN  
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+	DECLARE @MeasureId INT = dbo.udfMipsSelectMeasureIdFromPqrsCode(@PqrsCd,GETDATE());
+	
+	IF @MeasureId IS NULL OR @MeasureId <= 0
+		RETURN;
+	
+	DECLARE @tmpMipsCptList TABLE ([code] VARCHAR(20) NULL);
+	
+	INSERT INTO 
+		@tmpMipsCptList ([CODE])
+	SELECT DISTINCT
+		RIGHT([CODE],5) AS [CODE]
+	FROM 
+		[CMS_PQRI_MEASURE_CODE] 
+	WHERE 
+		[CMS_PQRI_MEASURE_ID] = @MeasureId 
+		AND ([START_DATE] IS NULL OR [START_DATE] <= GETDATE()) 
+		AND ([END_DATE] IS NULL OR [END_DATE] >= GETDATE())
+		AND [CODE] IS NOT NULL
+		AND [CODING_SYSTEM] IN ('DQ411','HCPCS')
+	UNION
+		SELECT DISTINCT
+			RIGHT([CODE_2],5) AS [CODE]
+		FROM 
+			[CMS_PQRI_MEASURE_CODE] 
+		WHERE 
+			[CMS_PQRI_MEASURE_ID] = @MeasureId 
+			AND ([START_DATE] IS NULL OR [START_DATE] <= GETDATE()) 
+			AND ([END_DATE] IS NULL OR [END_DATE] >= GETDATE())
+			AND [CODE_2] IS NOT NULL
+			AND [CODING_SYSTEM] IN ('DQ411','HCPCS');
+		
+	IF @ShowDebug <> 0 SELECT * FROM @tmpMipsCptList; -- testing
+
+	DECLARE @result INT = 
+		(
+		SELECT TOP 1 1
+			--physician_procedure_id,charge_master_id,CPT_CODE,billing_code,cm.[description] 
+		FROM 
+			[PHYSICIAN_PROCEDURE_EVALUATION] ppe 
+			JOIN [CHARGE_MASTER] cm ON cm.[CHARGE_MASTER_ID] = ppe.[PHYSICIAN_PROCEDURE_ID]
+		WHERE 
+			[CHART_ID] = @ChartId 
+			--AND [SERVICE_AGREEMENT_ID] =  ??
+			AND (cm.[CHARGE_MASTER_USAGE_CODE] = 9)
+			AND cm.[CPT_CODE] IN (SELECT DISTINCT [CODE] FROM @tmpMipsCptList)
+		);
+	
+	IF @result = 1
+	BEGIN
+		SELECT 'RESULT' = CAST(1 AS INT);
+		RETURN 1;
+	END;
+	
+	RETURN;
+
+END -- end SPROC
+
+GO

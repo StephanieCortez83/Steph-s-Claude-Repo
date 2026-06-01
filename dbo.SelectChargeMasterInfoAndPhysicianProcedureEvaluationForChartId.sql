@@ -1,0 +1,41 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE   PROCEDURE [dbo].[SelectChargeMasterInfoAndPhysicianProcedureEvaluationForChartId]   
+	 @ChartId INT
+AS
+BEGIN  
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+	IF @ChartId IS NULL OR @ChartId <= 0
+		RETURN;
+	
+	DECLARE @saId INT = (SELECT TOP 1 [SERVICE_AGREEMENT_ID] FROM [CHART] WHERE [CHART_ID] = @ChartId);
+
+	IF @saId IS NULL OR @saId <= 0
+		RETURN;
+
+	SELECT TOP 100	-- arbitrary limit
+		 'PPID: ' + CAST(ppe.[PHYSICIAN_PROCEDURE_ID] AS VARCHAR(32)) +
+		+', CMUC: ' + CAST(cm.[CHARGE_MASTER_USAGE_CODE] AS VARCHAR(5)) +
+		+', CMPT: ' + cm.[CPT_CODE] AS 'RESULT'
+	FROM 
+		[PHYSICIAN_PROCEDURE_EVALUATION] ppe
+		JOIN [CHARGE_MASTER] cm ON ppe.[PHYSICIAN_PROCEDURE_ID] = cm.[CHARGE_MASTER_ID]
+	WHERE 
+		cm.[SERVICE_AGREEMENT_ID] = @saId
+		AND ppe.[CHART_ID] = @ChartId
+	ORDER BY 
+		 cm.[CHARGE_MASTER_USAGE_CODE]
+		,cm.[CPT_CODE];
+
+/*
+usage:
+EXEC [dbo].[SelectChargeMasterInfoAndPhysicianProcedureEvaluationForChartId] @ChartId=2100117080
+*/
+END -- end SPROC
+
+GO

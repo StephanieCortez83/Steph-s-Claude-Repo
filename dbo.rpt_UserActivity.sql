@@ -1,0 +1,156 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+CREATE PROCEDURE [dbo].[rpt_UserActivity]
+@ReportUser int, @User int = -1, @UserClass int = -1, @UserGroup int = -1, @OnlineOnly bit = 0, @From date, @To date
+WITH EXEC AS CALLER
+AS
+-- =============================================
+-- Author:		Daniel Bonebrake
+-- Create date: 4/30/2013
+-- Description:	Generate a report of ACS user activity for a given date range.
+-- =============================================
+DECLARE @m_ReportUser INT = @ReportUser;
+DECLARE @m_User INT = @User;
+DECLARE @m_UserClass INT = @UserClass;
+DECLARE @m_UserGroup INT = @UserGroup;
+DECLARE @m_OnlineOnly BIT = @OnlineOnly;
+DECLARE @m_From DATE = @From;
+DECLARE @m_To DATE = @To;
+
+;
+WITH StartTimes
+AS (
+	SELECT DISTINCT o.USER_PROFILE_ID,
+		SESSION_START,
+		o.USER_SESSION_ID
+	FROM USER_SESSION o WITH (NOLOCK)
+	WHERE NOT EXISTS (
+			SELECT 1
+			FROM USER_SESSION i WITH (NOLOCK)
+			WHERE i.USER_PROFILE_ID = o.USER_PROFILE_ID
+				AND o.SESSION_START > i.SESSION_START
+				AND o.SESSION_START <= i.LAST_REQUEST
+			)
+	),
+EndTimes
+AS (
+	SELECT DISTINCT USER_SESSION_ID,
+		o.USER_PROFILE_ID,
+		LAST_REQUEST
+	FROM USER_SESSION o WITH (NOLOCK)
+	INNER JOIN USER_PROFILE ON USER_PROFILE.USER_PROFILE_ID = o.USER_PROFILE_ID
+		AND (
+			@m_UserClass = - 1
+			OR USER_PROFILE.USER_CLASS_CD = @m_UserClass
+			)
+	WHERE NOT EXISTS (
+			SELECT 1
+			FROM USER_SESSION i WITH (NOLOCK)
+			WHERE i.USER_PROFILE_ID = o.USER_PROFILE_ID
+				AND o.LAST_REQUEST >= i.SESSION_START
+				AND o.LAST_REQUEST < i.LAST_REQUEST
+			)
+	),
+SessionGroups
+AS (
+	SELECT USER_SESSION_ID,
+		USER_PROFILE_ID,
+		LOGON = SESSION_START,
+		LOGOFF = (
+			SELECT min(LAST_REQUEST)
+			FROM EndTimes et
+			WHERE et.USER_PROFILE_ID = st.USER_PROFILE_ID
+				AND LAST_REQUEST >= SESSION_START
+			)
+	FROM StartTimes st
+	),
+Totals
+AS (
+	SELECT sg.USER_SESSION_ID,
+		sg.USER_PROFILE_ID,
+		up.LAST_NAME + ', ' + up.FIRST_NAME AS [NAME],
+		up.SIGN_ON_ID,
+		LOGON,
+		CASE 
+			WHEN us.SIGNED_OUT IS NULL
+				OR us.SIGNED_OUT <> 1
+				AND DATEDIFF(mi, us.LAST_REQUEST, GETDATE()) < 30
+				THEN NULL
+			ELSE LOGOFF
+			END AS LOGOFF,
+		us.LAST_REQUEST,
+		TIME_IN_SECONDS = DATEDIFF(s, LOGON, ISNULL(CASE 
+					WHEN us.SIGNED_OUT IS NULL
+						OR us.SIGNED_OUT <> 1
+						AND DATEDIFF(mi, us.LAST_REQUEST, GETDATE()) < 30
+						THEN NULL
+					ELSE LOGOFF
+					END, GETDATE())),
+		us.SIGNED_OUT,
+		(
+			SELECT COUNT(c.CHART_ID)
+			FROM CHART c WITH (NOLOCK)
+			WHERE sg.USER_PROFILE_ID = c.COMPLETED_BY_USER_PROFILE_ID
+				AND c.COMPLETION_DATE BETWEEN LOGON
+					AND LOGOFF
+			) AS COMPLETED,
+		(
+			SELECT COUNT(c.CHART_ID)
+			FROM CHART c WITH (NOLOCK)
+			WHERE sg.USER_PROFILE_ID = c.APPROVED_BY_USER_PROFILE_ID
+				AND c.APPROVED_DATE BETWEEN LOGON
+					AND LOGOFF
+			) AS APPROVED,
+		DAY(LOGON) AS LOGON_DAY,
+		MONTH(LOGON) AS LOGON_MONTH,
+		YEAR(LOGON) AS LOGON_YEAR
+	FROM SessionGroups sg
+	INNER JOIN USER_PROFILE up ON sg.USER_PROFILE_ID = up.USER_PROFILE_ID
+		AND (
+			@m_UserClass = - 1
+			OR up.USER_CLASS_CD = @m_UserClass
+			)
+	INNER JOIN USER_SESSION us ON us.USER_SESSION_ID = sg.USER_SESSION_ID
+	WHERE (
+			@m_User = - 1
+			OR @m_User = sg.USER_PROFILE_ID
+			)
+		AND (
+			@m_UserGroup = - 1
+			OR (
+				@m_UserGroup = up.USER_GROUP_ID
+				OR @m_UserGroup IN (
+					SELECT USER_GROUP_ID
+					FROM USER_GROUP_TO_USER_PROFILE
+					WHERE USER_GROUP_TO_USER_PROFILE.USER_PROFILE_ID = up.USER_PROFILE_ID
+					)
+				)
+			)
+	)
+SELECT USER_SESSION_ID,
+       USER_PROFILE_ID,
+       NAME,
+       SIGN_ON_ID,
+       LOGON,
+       LOGOFF,
+       LAST_REQUEST,
+       TIME_IN_SECONDS,
+       SIGNED_OUT,
+       COMPLETED,
+       APPROVED,
+       LOGON_DAY,
+       LOGON_MONTH,
+       LOGON_YEAR
+FROM Totals t
+WHERE (
+		@m_OnlineOnly = 0
+		OR @m_OnlineOnly = 1
+		AND t.LOGOFF IS NULL
+		)
+	AND t.LOGON >= @m_From
+	AND DATEADD(dd, DATEDIFF(dd, 0, t.LAST_REQUEST), 0) <= @m_To
+ORDER BY [NAME],
+	LOGON
+GO
