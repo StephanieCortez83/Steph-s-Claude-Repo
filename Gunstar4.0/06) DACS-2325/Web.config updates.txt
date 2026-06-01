@@ -1,0 +1,5 @@
+Add the following to web.config and associated transform files:
+
+within the <appSettings...> section:
+
+    <add key="EmailAddress_AdminTest" value="complete@corrohealth.com" />

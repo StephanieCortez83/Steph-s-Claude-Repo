@@ -1,0 +1,4 @@
+Use RevCycleDB
+GO 
+
+Alter Table [dbo].[ICD10_CM] ALTER COLUMN [ORDER_NUMBER] VARCHAR(6)
