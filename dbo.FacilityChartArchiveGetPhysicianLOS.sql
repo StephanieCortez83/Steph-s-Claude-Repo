@@ -1,0 +1,24 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+ 
+CREATE   PROCEDURE [dbo].[FacilityChartArchiveGetPhysicianLOS](@ChartList udt_int READONLY)
+AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		SELECT PHYSICIAN_SERVICE_MOD
+			 , CHART_ID
+			 , QUANTITY
+			 , SHORT_DESC
+			 , CPT_CODE
+			 , BILLING_CODE
+			 , ALIAS_BILLING_CODE
+			 , DEPARTMENT
+			 , LEVEL_NUMBER
+        FROM dbo.FacilityChartArchiveChartPhysicianLOS pl
+
+		WHERE	EXISTS (SELECT 1  FROM @ChartList  x WHERE x.x =  pl.CHART_ID);
+	END;
+GO

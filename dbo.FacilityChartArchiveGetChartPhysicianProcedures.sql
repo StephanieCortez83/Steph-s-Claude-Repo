@@ -1,0 +1,80 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+ 
+CREATE   PROCEDURE [dbo].[FacilityChartArchiveGetChartPhysicianProcedures] (@ChartList udt_int READONLY)
+AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		SELECT	pp.QUANTITY							  QUANTITY
+			  , pp.MODIFIERS						  MODIFIERS
+			  , cm.DESCRIPTION						  DESCRIPTION
+			  , cm.CPT_CODE							  CPT_CODE
+			  , cm.BILLING_CODE						  BILLING_CODE
+			  , cm.ALIAS_BILLING_CODE				  ALIAS_BILLING_CODE
+			  , cm.ICD9_CODE						  ICD9_CODE
+			  , pp.CHART_ID							  CHART_ID
+			  , pp.DIAGNOSIS_CODE					  DIAGNOSIS_CODE
+			  , pp.PROCEDURE_DATE					  PROCEDURE_DATE
+			  , pp.PHYSICIAN_PROCEDURE_ID			  PHYSICIAN_PROCEDURE_ID
+			  , pp.PHYSICIAN_ID						  PHYSICIAN_ID
+			  , pp.INSUFFICIENT_DOCUMENTATION_TO_BILL INSUFFICIENT_DOCUMENTATION_TO_BILL
+			  , pp.DIAGNOSIS_CODE_ICD10				  DIAGNOSIS_CODE_ICD10
+		FROM	dbo.FacilityChartArchiveChartPhysicianProcedures pp
+				LEFT JOIN dbo.FacilityChartArchiveChargeMaster	 cm
+					ON cm.CHARGE_MASTER_ID = pp.PHYSICIAN_PROCEDURE_ID
+		WHERE	EXISTS (SELECT 1  FROM @ChartList  x WHERE x.x =  pp.CHART_ID)
+		UNION
+		SELECT	ap.QUANTITY							  QUANTITY
+			  , ap.MODIFIERS						  MODIFIERS
+			  , cm.DESCRIPTION						  DESCRIPTION
+			  , cm.CPT_CODE							  CPT_CODE
+			  , cm.BILLING_CODE						  BILLING_CODE
+			  , cm.ALIAS_BILLING_CODE				  ALIAS_BILLING_CODE
+			  , cm.ICD9_CODE						  ICD9_CODE
+			  , ap.CHART_ID							  CHART_ID
+			  , pp.DIAGNOSIS_CODE					  DIAGNOSIS_CODE
+			  , ap.PROCEDURE_DATE					  PROCEDURE_DATE
+			  , ap.CHARGE_MASTER_ID					  PHYSICIAN_PROCEDURE_ID
+			  , ap.PHYSICIAN_ID						  PHYSICIAN_ID
+			  , ap.INSUFFICIENT_DOCUMENTATION_TO_BILL INSUFFICIENT_DOCUMENTATION_TO_BILL
+			  , pp.DIAGNOSIS_CODE_ICD10				  DIAGNOSIS_CODE_ICD10
+		FROM	dbo.FacilityChartArchiveChartAdditionalProcedures			ap
+				INNER JOIN dbo.FacilityChartArchiveChartPhysicianProcedures pp
+					ON pp.PHYSICIAN_PROCEDURE_ID = ap.CHARGE_MASTER_ID
+				LEFT JOIN dbo.FacilityChartArchiveChargeMaster				cm
+					ON cm.CHARGE_MASTER_ID = ap.CHARGE_MASTER_ID
+		WHERE	EXISTS (SELECT 1  FROM @ChartList  x WHERE x.x =  pp.CHART_ID)
+		UNION
+		SELECT	ap.QUANTITY							  QUANTITY
+			  , ap.MODIFIERS						  MODIFIERS
+			  , cm.DESCRIPTION						  DESCRIPTION
+			  , cm.CPT_CODE							  CPT_CODE
+			  , cm.BILLING_CODE						  BILLING_CODE
+			  , cm.ALIAS_BILLING_CODE				  ALIAS_BILLING_CODE
+			  , cm.ICD9_CODE						  ICD9_CODE
+			  , ap.CHART_ID							  CHART_ID
+			  , ''									  DIAGNOSIS_CODE
+			  , ap.PROCEDURE_DATE					  PROCEDURE_DATE
+			  , ap.CHARGE_MASTER_ID					  PHYSICIAN_PROCEDURE_ID
+			  , ap.PHYSICIAN_ID						  PHYSICIAN_ID
+			  , ap.INSUFFICIENT_DOCUMENTATION_TO_BILL INSUFFICIENT_DOCUMENTATION_TO_BIsLL
+			  , ''									  DIAGNOSIS_CODE_ICD10
+		FROM	dbo.FacilityChartArchiveChartAdditionalProcedures ap
+				INNER JOIN dbo.FacilityChartArchiveChartMetadata			  c
+					ON c.CHART_ID = ap.CHART_ID
+				INNER JOIN SERVICE_AGREEMENT					  sa WITH (NOLOCK)
+					ON c.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+					   AND sa.ALLOW_MULTIPLE_PHYSICIAN_LEVELS = 1
+				INNER JOIN CHART_PHYSICIAN_LEVEL_OF_SERVICE		  los WITH (NOLOCK)
+					ON los.CHART_ID = ap.CHART_ID
+					   AND los.PROVIDER_ID = ap.PHYSICIAN_ID
+					   AND los.DATE_OF_SERVICE = ap.PROCEDURE_DATE
+				INNER JOIN dbo.FacilityChartArchiveChargeMaster	  cm
+					ON cm.CHARGE_MASTER_ID = ap.CHARGE_MASTER_ID
+					   AND cm.CPT_CODE = '99292'
+		WHERE	EXISTS (SELECT 1  FROM @ChartList  x WHERE x.x =  ap.CHART_ID);
+	END;
+GO

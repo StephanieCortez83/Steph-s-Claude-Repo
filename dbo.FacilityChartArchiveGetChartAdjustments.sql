@@ -1,0 +1,35 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+ 
+CREATE   PROCEDURE [dbo].[FacilityChartArchiveGetChartAdjustments] (@ChartList udt_int READONLY)
+AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		SELECT	a.CHART_ADJUSTMENT_ID
+			  , a.CHART_ID
+			  , a.STATUS_ID
+			  , a.QUANTITY
+			  , cm.CPT_CODE
+			  , cm.BILLING_CODE
+			  , cm.ALIAS_BILLING_CODE
+			  , cm.ICD9_CODE
+			  , a.MODIFIERS
+			  , a.REFERENCE_CODE
+			  , a.REASON_ID
+			  , a.COMMENT
+			  , a.ADJUSTMENT_DESCRIPTION
+			  , cm.DESCRIPTION
+			  , cm.CHARGE_MASTER_DEPARTMENT_NAME AS DEPARTMENT
+			  , cm.CHARGE_MASTER_USAGE_CODE
+			  , cm.FACILITY_DEPARTMENT_CODE
+			  , a.REVISED_DATE_OF_SERVICE
+			  , a.CHARGE_MASTER_ID
+		FROM	dbo.FacilityChartArchiveChartAdjustments	   a
+				LEFT JOIN dbo.FacilityChartArchiveChargeMaster cm
+					ON cm.CHARGE_MASTER_ID = a.CHARGE_MASTER_ID
+		WHERE	EXISTS (SELECT 1  FROM @ChartList  x WHERE x.x =  a.CHART_ID);
+	END;
+GO
