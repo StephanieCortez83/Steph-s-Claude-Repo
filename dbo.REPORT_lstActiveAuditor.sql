@@ -1,0 +1,80 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+
+
+
+-- =============================================
+-- Author:		Laura Hotalling
+-- Create date: 4/24/2013
+-- Description:	Returns list of active Auditors for a given date range
+-- =============================================
+CREATE PROCEDURE [dbo].[REPORT_lstActiveAuditor]
+	-- Add the parameters for the stored procedure here
+	@FromDate DATETIME,
+	@ToDate DATETIME
+
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+    -- Insert statements for procedure here
+  DECLARE @m_FromDate DATE = @FromDate;
+  DECLARE @m_ToDate DATE = @ToDate;
+
+  SELECT DISTINCT COMPLETED_BY_USER_PROFILE_ID AS CODER_USER_ID,
+	  LAST_NAME + ', ' + FIRST_NAME Employee
+  FROM chart c WITH (NOLOCK)
+  INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON sa.SERVICE_AGREEMENT_ID = c.SERVICE_AGREEMENT_ID
+  INNER JOIN USER_PROFILE WITH (NOLOCK) ON USER_PROFILE_ID = COMPLETED_BY_USER_PROFILE_ID
+  WHERE APPROVAL_REASON_CODE = 3 -- Auditor Approved Only
+	  AND CHART_STATUS_ID IN (4,5)
+	  AND COMPLETED_BY_USER_PROFILE_ID <> 2
+	  AND USER_CLASS_CD = 1
+	  AND DEMO_TEST_SITE_IND <> 1
+	  AND (
+		  BILL_ONLY_ACTIVE_PROCEDURES_IND <> 1
+		  OR EXISTS (
+			  SELECT *
+			  FROM SENT_PROCEDURE WITH (NOLOCK)
+			  WHERE CHART_ID = c.CHART_ID
+			  )
+		  )
+	  AND DATEADD(DAY, DATEDIFF(DAY, 0, COMPLETION_DATE), 0) BETWEEN @m_FromDate AND @m_ToDate
+
+  UNION
+
+  SELECT DISTINCT APPROVED_BY_USER_PROFILE_ID AS CODER_USER_ID,
+	  LAST_NAME + ', ' + FIRST_NAME Employee
+  FROM CHART c WITH (NOLOCK)
+  INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON sa.SERVICE_AGREEMENT_ID = c.SERVICE_AGREEMENT_ID
+  INNER JOIN USER_PROFILE WITH (NOLOCK) ON USER_PROFILE_ID = APPROVED_BY_USER_PROFILE_ID
+  WHERE APPROVAL_REASON_CODE = 3 -- Auditor Approved Only
+	  AND CHART_STATUS_ID IN (4,5)
+	  AND APPROVED_BY_USER_PROFILE_ID <> 2
+	  AND USER_CLASS_CD IN (1,2)
+	  AND DEMO_TEST_SITE_IND <> 1
+	  AND (
+		  BILL_ONLY_ACTIVE_PROCEDURES_IND <> 1
+		  OR EXISTS (
+			  SELECT *
+			  FROM SENT_PROCEDURE WITH (NOLOCK)
+			  WHERE CHART_ID = c.CHART_ID
+			  )
+		  )
+	  AND DATEADD(DAY, DATEDIFF(DAY, 0, APPROVED_DATE), 0) BETWEEN @m_FromDate AND @m_ToDate
+
+  UNION
+
+  SELECT - 1 AS CODER_USER_ID,
+	  '*All' AS Employee
+  ORDER BY Employee,
+	  CODER_USER_ID
+END
+GO
+GRANT EXECUTE ON  [dbo].[REPORT_lstActiveAuditor] TO [dbx_ExecuteReportProcs]
+GO

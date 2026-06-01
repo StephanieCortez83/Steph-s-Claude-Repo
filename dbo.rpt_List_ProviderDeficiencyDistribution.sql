@@ -1,0 +1,47 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE PROCEDURE [dbo].[rpt_List_ProviderDeficiencyDistribution] @ServiceAgreementId INT,
+	@DOSDaysPrior INT = 1,
+	@DateType INT = 0 -- DOS
+	WITH
+EXEC AS CALLER AS
+
+DECLARE @m_ServiceAgreementId INT = @ServiceAgreementId;
+DECLARE @m_DOSDaysPrior INT = @DOSDaysPrior;
+DECLARE @m_DateType INT = @DateType;
+DECLARE @Today DATE = GETDATE();
+
+SELECT fp.EMAIL_ADDRESS [To],
+	fp.FACILITY_PROF_ID Provider,
+	(
+		SELECT up.EMAIL_ADDRESS
+		FROM SERVICE_AGREEMENT sa WITH (NOLOCK)
+		INNER JOIN SERVICE_AGREEMENT_MANAGEMENT_TEAM mt WITH (NOLOCK) ON mt.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+		INNER JOIN USER_PROFILE up WITH (NOLOCK) ON up.USER_PROFILE_ID = mt.USER_PROFILE_ID
+		WHERE sa.SERVICE_AGREEMENT_ID = fp.SERVICE_AGREEMENT_ID
+			AND MANAGEMENT_TEAM_ROLE_ID = 1
+			AND up.IS_ACTIVE = 'Y'
+		) ReplyTo
+FROM FACILITY_PROFESSIONAL fp WITH (NOLOCK)
+WHERE fp.SERVICE_AGREEMENT_ID = @m_ServiceAgreementId
+	AND NULLIF(fp.EMAIL_ADDRESS, '') IS NOT NULL
+	AND EXISTS (
+		SELECT *
+		FROM vw_ProviderDocumentationDeficiencies
+		WHERE AttendingProviderID = fp.FACILITY_PROF_ID
+			AND FacilityId = fp.FACILITY_ID
+			AND (
+				(
+					@m_DateType = 0
+					AND DATEADD(DAY, DATEDIFF(DAY, 0, DOS), 0) = DATEADD(day, - @m_DOSDaysPrior, @Today)
+					)
+				OR (
+					@m_DateType = 1
+					AND DATEADD(DAY, DATEDIFF(DAY, 0, SentDate), 0) = DATEADD(DAY, - @m_DOSDaysPrior, @Today)
+					)
+				)
+		)
+GO
