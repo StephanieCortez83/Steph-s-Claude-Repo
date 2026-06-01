@@ -1,0 +1,86 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+-- Stored Procedure
+
+CREATE PROCEDURE [dbo].[AUDIT_LOG_SELECT_BY_OBJECT_TYPE_AND_OBJECT_ID]
+	@OBJECT_TYPE	 varchar(100)
+   ,@OBJECT_ID		 int
+   ,@PAGE_INDEX		 int		  = NULL
+   ,@PAGE_SIZE		 int		  = 25
+   ,@WHERE_CLAUSE	 varchar(500) = NULL
+   ,@ORDER_BY_CLAUSE varchar(250) = NULL
+   ,@RECORD_COUNT	 int OUTPUT
+AS
+
+SET NOCOUNT ON
+SET CONCAT_NULL_YIELDS_NULL OFF
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+--[ID LIST]------------------------------------------------------
+CREATE TABLE #tmp
+(
+	[INDEX_ID]	   int IDENTITY (1, 1) NOT NULL,
+	[AUDIT_LOG_ID] int				   NOT NULL
+)
+
+DECLARE @sql nvarchar(1000)
+
+SET @sql = 'INSERT INTO #tmp (AUDIT_LOG_ID) ' +
+		   'SELECT [AUDIT_LOG].[AUDIT_LOG_ID] ' +
+		   'FROM [AUDIT_LOG] WITH (NOLOCK) ' +
+		   'WHERE [AUDIT_LOG].[OBJECT_TYPE] = ''' + @OBJECT_TYPE + '''
+		      AND [AUDIT_LOG].[OBJECT_ID]	= '	  + CAST(@OBJECT_ID AS VARCHAR(50))
+
+		print @sql
+IF @WHERE_CLAUSE IS NOT NULL AND LEN(@WHERE_CLAUSE) > 0
+	SET @sql = @sql + ' AND (' + @WHERE_CLAUSE + ') '
+
+IF @ORDER_BY_CLAUSE IS NOT NULL AND LEN(@ORDER_BY_CLAUSE) > 0
+	SET @sql = @sql + 'ORDER BY ' + @ORDER_BY_CLAUSE + ' '
+ELSE
+	SET @sql = @sql + 'ORDER BY [AUDIT_LOG].[CREATION_DATE_TIME] '
+
+EXEC sp_executesql @sql
+
+--[RANGE]----------------------------------------------------------
+
+SELECT @RECORD_COUNT = @@ROWCOUNT
+
+DECLARE @FIRST_RECORD int
+DECLARE @LAST_RECORD  int
+
+IF @PAGE_INDEX IS NOT NULL
+BEGIN
+	SET @FIRST_RECORD = (@PAGE_INDEX * @PAGE_SIZE) + 1
+	SET @LAST_RECORD  = (@PAGE_INDEX  + 1) * @PAGE_SIZE
+
+END
+ELSE
+BEGIN
+	SET @FIRST_RECORD = 1
+	SET @LAST_RECORD  = @RECORD_COUNT
+END
+
+--[DATA]------------------------------------------------------------
+
+SELECT [AUDIT_LOG].[AUDIT_LOG_ID]
+      ,[AUDIT_LOG].[OBJECT_TYPE]
+      ,[AUDIT_LOG].[OBJECT_ID]
+	  ,[AUDIT_LOG].[EVENT_NAME]
+      ,[AUDIT_LOG].[COMMENT]
+      ,[AUDIT_LOG].[CHANGING_USER_PROFILE_ID]
+      ,[AUDIT_LOG].[CHANGING_SIGN_ON_ID]
+      ,[AUDIT_LOG].[CHANGING_EMAIL_ADDRESS]
+	  ,[AUDIT_LOG].[CHANGING_FIRST_NAME]
+      ,[AUDIT_LOG].[CHANGING_LAST_NAME]      
+      ,[AUDIT_LOG].[CREATION_DATE_TIME]
+FROM 
+	#tmp [tmp]
+	INNER JOIN [dbo].[AUDIT_LOG] WITH (NOLOCK)
+			ON [dbo].[AUDIT_LOG].[AUDIT_LOG_ID] = [tmp].[AUDIT_LOG_ID]
+ORDER BY
+	[tmp].[INDEX_ID]
+GO
