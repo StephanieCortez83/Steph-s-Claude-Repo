@@ -1,0 +1,33 @@
+Add the following entry to the appSettings region of the following web.config files:
+
+CCSWebApp/web.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="0" />  
+
+CCSWebApp/web.backup.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="0" />  
+
+CCSWebApp/web.beta.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="0" />  
+
+CCSWebApp/web.production.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="0" />  
+
+CCSWebApp/web.staging.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="0" />  
+
+
+
+CCSWebApp/web.qa.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="1" />  
+
+CCSWebApp/web.dev.config
+    <!-- CreateImportTemplateFromWebAppResource: 1 = Use CCSWebApp generation.  Anything else uses default WebApi functionality -->
+    <add key="CreateImportTemplateFromWebAppResource" value="1" />  
+
+

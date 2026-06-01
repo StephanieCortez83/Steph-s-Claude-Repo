@@ -1,0 +1,12 @@
+web.config item changes (affects all transforms and app.settings.config file):
+
+entries for the following:
+	<add key="ObservationHourDateOfServiceDayLimit" value="100" />
+	<add key="InfusionInjectionAddlDOSNonOBSLimit" value="100" />
+	<add key="InfusionInjectionAddlDOSOBSLimit" value="100" />
+
+need to be updated to read as follows:
+
+	<add key="ObservationHourDateOfServiceDayLimit" value="130" />
+	<add key="InfusionInjectionAddlDOSNonOBSLimit" value="130" />
+	<add key="InfusionInjectionAddlDOSOBSLimit" value="130" />

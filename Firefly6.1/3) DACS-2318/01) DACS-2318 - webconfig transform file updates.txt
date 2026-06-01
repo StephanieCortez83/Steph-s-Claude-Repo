@@ -1,0 +1,16 @@
+
+the following value fields  need to be set as follows within all webconfig files:
+   	<add key="ObservationHourDateOfServiceDayLimit" value="100" />
+	<add key="InfusionInjectionAddlDOSNonOBSLimit" value="100" />
+	<add key="InfusionInjectionAddlDOSOBSLimit" value="100" />
+
+
+File list:
+CCSWebApp\appsettings.config	Edit
+CCSWebApp\Web.backup.config	Edit
+CCSWebApp\Web.beta.config	Edit
+CCSWebApp\Web.dev.config	Edit
+CCSWebApp\Web.production.config	Edit
+CCSWebApp\Web.qa.config		Edit
+CCSWebApp\Web.staging.config	Edit
+
