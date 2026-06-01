@@ -1,0 +1,94 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+-- =============================================
+-- Author:		Daniel Bonebrake
+-- Create date: 6/25/2015
+-- Description:	Get the physician service guideline ID for a chart
+-- =============================================
+CREATE FUNCTION [dbo].[GetPhysicianServiceGuidelineID] 
+(
+	-- Add the parameters for the function here
+	@ChartID int
+)
+RETURNS int
+AS
+BEGIN
+	-- Declare the return variable here
+	DECLARE @Result int
+
+	-- Add the T-SQL statements to compute the return value here
+	SELECT @Result = (
+SELECT TOP 1 PHYSICIAN_SERVICE_GUIDELINE_ID
+FROM (
+    SELECT 1 SEQ,
+        OVERRIDE_PHYSICIAN_SERVICE_GUIDELINE_ID PHYSICIAN_SERVICE_GUIDELINE_ID
+    FROM CHART WITH (NOLOCK)
+    WHERE CHART_ID = @ChartID
+        AND OVERRIDE_PHYSICIAN_SERVICE_GUIDELINE_ID IS NOT NULL
+    
+    UNION
+    
+    SELECT 2,
+        COALESCE(cp.PHYSICIAN_SERVICE_GUIDELINE_ID, 1)
+    FROM CHART c WITH (NOLOCK)
+    INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON c.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+    INNER JOIN CHART_PAYOR cp WITH (NOLOCK) ON cp.CHART_ID = c.CHART_ID
+    WHERE c.CHART_ID = @ChartID
+        AND sa.PHYSICIAN_SERVICE_GUIDELINE_METHOD = 99
+    
+    UNION
+    
+    SELECT 3,
+        CASE 
+            WHEN ffc.PAYOR_METHOD_CD IS NULL
+                THEN 3
+            WHEN ffc.PAYOR_METHOD_CD = 1
+                THEN 1
+            END
+    FROM CHART c WITH (NOLOCK)
+    INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON c.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+    INNER JOIN FACILITY_FINANCIAL_CLASS ffc WITH (NOLOCK) ON ffc.FINANCIAL_CLASS_CD = c.FINANCIAL_CLASS_CD
+        AND ffc.SERVICE_AGREEMENT_ID = c.SERVICE_AGREEMENT_ID
+    WHERE c.CHART_ID = @ChartID
+        AND BASE_PHYS_SERVICE_LVL_ON_PAYOR_METHOD = 1
+        AND COALESCE(c.COMPLETION_DATE, '12/31/9999') >= sa.BASE_PHYS_SERVICE_LVL_ON_PAYOR_METHOD_EFFECTIVE_DT
+        AND sa.COLLECT_FINANCIAL_CLASS = 'R'
+    
+    UNION
+    
+    SELECT 4,
+        CASE 
+            WHEN cp.PAYOR_METHOD_CD = 1
+                THEN 1
+            ELSE 3
+            END
+    FROM CHART c WITH (NOLOCK)
+    INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON c.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+    INNER JOIN CHART_PAYOR cp WITH (NOLOCK) ON cp.CHART_ID = c.CHART_ID
+    WHERE c.CHART_ID = @ChartID
+        AND BASE_PHYS_SERVICE_LVL_ON_PAYOR_METHOD = 1
+        AND COALESCE(c.COMPLETION_DATE, '12/31/9999') >= sa.BASE_PHYS_SERVICE_LVL_ON_PAYOR_METHOD_EFFECTIVE_DT
+        AND sa.COLLECT_PAYOR = 'R'
+    
+    UNION
+    
+    SELECT 5,
+        PHYSICIAN_SERVICE_GUIDELINE_METHOD
+    FROM CHART c WITH (NOLOCK)
+    INNER JOIN SERVICE_AGREEMENT sa WITH (NOLOCK) ON c.SERVICE_AGREEMENT_ID = sa.SERVICE_AGREEMENT_ID
+    WHERE c.CHART_ID = @ChartID
+        AND PHYSICIAN_SERVICE_GUIDELINE_METHOD IS NOT NULL
+    ) x
+ORDER BY SEQ)
+
+	-- Return the result of the function
+	RETURN @Result
+
+END
+
+GO
+GRANT EXECUTE ON  [dbo].[GetPhysicianServiceGuidelineID] TO [dbx_ExecuteReportProcs]
+GO
