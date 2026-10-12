@@ -623,6 +623,39 @@ if(!window.storage){
 }
 
 const FIELD_LIBRARY = {
+  // Verified: the exact columns the ACS.Modules.Charts ExportCharts handler returns today.
+  "Chart Search Export (verified)": [
+    {id: 901, name: "Facility", phi:false},
+    {id: 902, name: "Chart ID", phi:false},
+    {id: 903, name: "Facility Chart ID", phi:false},
+    {id: 904, name: "Medical Record #", phi:true},
+    {id: 905, name: "Date of Birth", phi:true},
+    {id: 906, name: "Patient Name", phi:true},
+    {id: 907, name: "Long Patient ID", phi:true},
+    {id: 908, name: "Physician", phi:false},
+    {id: 909, name: "Patient Class", phi:false},
+    {id: 910, name: "Status", phi:false},
+    {id: 911, name: "Pending Reason", phi:false},
+    {id: 912, name: "Patient Disposition", phi:false},
+    {id: 913, name: "Received Date", phi:false},
+    {id: 914, name: "Date of Service", phi:false},
+    {id: 915, name: "Discharge Date", phi:false},
+    {id: 916, name: "Sent Date", phi:false},
+    {id: 917, name: "Last Changed", phi:false},
+    {id: 918, name: "Last Image Receipt", phi:false},
+    {id: 919, name: "EMR", phi:false},
+    {id: 920, name: "Census", phi:false},
+    {id: 921, name: "Location Code", phi:false},
+    {id: 922, name: "Mid Level", phi:false},
+    {id: 923, name: "OB Arrival Source", phi:false},
+    {id: 924, name: "OB Department", phi:false},
+    {id: 925, name: "Facility Admin Chart ID", phi:false},
+    {id: 926, name: "Service Model", phi:false},
+    {id: 927, name: "Assigned To (First)", phi:false},
+    {id: 928, name: "Assigned To (Last)", phi:false},
+    {id: 929, name: "Client Comment", phi:false},
+    {id: 930, name: "Coder Notes", phi:false},
+  ],
   "Chart Demographics": [
     {id: 101, name: "Medical Record Number", phi:true},
     {id: 102, name: "Patient Name", phi:true},
@@ -696,7 +729,7 @@ const FIELD_BY_ID = {};
 Object.values(FIELD_LIBRARY).flat().forEach(f => FIELD_BY_ID[f.id] = f);
 
 const STATUS_OPTIONS = ["WIP","Coded","QA Review","Ready to Submit","Submitted","Billed"];
-const DATE_BASIS_OPTIONS = ["Date of Service (DOS)","Sent Date"];
+const DATE_BASIS_OPTIONS = ["Date of Service (DOS)","Sent Date","Received Date","Discharge Date","Approved Date","Completed Date"];
 const FACILITY_OPTIONS = [
   "All authorized facilities",
   "TIA - Playa Vista",
@@ -757,6 +790,7 @@ let showQuickStart = true;
    -------------------------------------------------------------- */
 function colsFrom(ids){ return ids.map(id=>({fieldId:id, caption:FIELD_BY_ID[id].name, width:18, format:""})); }
 
+const F_VERIFIED_IDS = [901,902,903,904,906,908,909,910,911,912,913,914,915,916,917,918,919,920,921,922,923,924,925,926,927,928,929,930,905,907];
 function applyPreset(o, ids){
   Object.assign(state, {
     EXPORT_FORMAT:"EXCEL",
@@ -773,6 +807,12 @@ function applyPreset(o, ids){
 }
 
 const PRESETS = {
+  chartSearchExport: {
+    icon:"📋", title:"Chart Search Export (all columns)",
+    blurb:"Every column the live Pulse chart export returns today — verified against the ExportCharts code.",
+    apply(){ applyPreset({NAME:"Chart Search Export", DESCRIPTION:"Full chart export with the same columns Pulse's chart search export returns.",
+      INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, EXPORT_FORMAT:"CSV", EXCEL_PAGE_NAME:"Chart Search Results"}, F_VERIFIED_IDS); }
+  },
   billingDetailFacility: {
     icon:"🧾", title:"Billing Detail",
     blurb:"One row per billed service — patient, dates, CPT, units, diagnosis, submission date.",
@@ -1781,6 +1821,36 @@ function yn(b){ return b ? '<span style="color:var(--teal);">Yes</span>' : '<spa
    Mock preview data
    -------------------------------------------------------------- */
 const MOCK = {
+  901:["TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood"],
+  902:["1048211","1048212","1048230","1048244","1048251","1048266"],
+  903:["ENC-30291","ENC-30304","ENC-30318","ENC-30322","ENC-30340","ENC-30355"],
+  904:["***-4471","***-2290","***-8813","***-1027","***-6654","***-3390"],
+  905:["1958-04-11","1971-09-02","1990-01-30","1963-12-19","1985-07-08","1977-03-24"],
+  906:["A. Reyes","M. Whitfield","D. Nguyen","J. Castillo","P. Okafor","R. Simmons"],
+  907:["***-0192","***-7730","***-5521","***-8804","***-3317","***-6609"],
+  908:["Dr. Alvarez","Dr. Kim","Dr. Alvarez","Dr. Brooks","Dr. Ferris","Dr. Kim"],
+  909:["Emergency","Outpatient","Emergency","Observation","Emergency","Outpatient"],
+  910:["Submitted","QA Review","Coded","Billed","Submitted","Coded"],
+  911:["—","Query Outstanding","—","—","—","Missing Signature"],
+  912:["Discharged","Admitted","Discharged","Transferred","Discharged","Discharged"],
+  913:["2026-06-03","2026-06-04","2026-06-04","2026-06-06","2026-06-07","2026-06-08"],
+  914:["2026-06-02","2026-06-03","2026-06-03","2026-06-05","2026-06-06","2026-06-07"],
+  915:["2026-06-02","2026-06-05","2026-06-03","2026-06-05","2026-06-06","2026-06-07"],
+  916:["2026-06-04","—","2026-06-05","2026-06-08","2026-06-09","—"],
+  917:["2026-06-04 09:12","2026-06-05 14:40","2026-06-05 08:03","2026-06-08 16:21","2026-06-09 10:55","2026-06-09 11:02"],
+  918:["2026-06-03","2026-06-04","2026-06-04","2026-06-06","2026-06-07","2026-06-08"],
+  919:["EPIC","Allscripts Paragon","EPIC","Cerner","EPIC","EPIC"],
+  920:["—","14","—","9","—","—"],
+  921:["ED1","UC2","ED1","OBS","ED1","UC2"],
+  922:["—","NP","—","PA","—","NP"],
+  923:["—","—","—","ED","—","—"],
+  924:["Emergency Dept","Urgent Care","Emergency Dept","Observation","Emergency Dept","Urgent Care"],
+  925:["A-30291","A-30304","A-30318","A-30322","A-30340","A-30355"],
+  926:["Full Service","Full Service","SaaS","Full Service","SaaS Automation","Full Service"],
+  927:["Jamie","Taylor","Jamie","Sam","Taylor","Jamie"],
+  928:["Alvarez","Brooks","Alvarez","Kim","Brooks","Alvarez"],
+  929:["—","Please re-review","—","—","—","—"],
+  930:["—","Awaiting provider query","—","Level adjusted","—","—"],
   101:["***-4471","***-2290","***-8813","***-1027","***-6654","***-3390"],
   102:["A. Reyes","M. Whitfield","D. Nguyen","J. Castillo","P. Okafor","R. Simmons"],
   103:["1958-04-11","1971-09-02","1990-01-30","1963-12-19","1985-07-08","1977-03-24"],

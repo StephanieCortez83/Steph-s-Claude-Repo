@@ -146,3 +146,20 @@ What changed in `index.html` (this folder):
 - Still no live DB/API; preview rows are mock data.
 
 Open questions: confirm which field IDs map to real EXPORT_FIELD rows; decide whether Facility & Rate Setup rates count as "raw"; add real timestamp fields (coded date, audit date) if wanted — none were invented here.
+
+---
+
+## Update 2: real field list + backend
+
+**Source of truth found.** `dbo.EXPORT_FIELD`'s static data is still unreadable (scrambled in the Sage model), but the live export code is readable: `backend/modules/ACS.Modules.Charts/Features/ExportCharts/` (`ExportChartsQuery`, `ExportChartsQueryHandler`). It returns 34 fixed raw columns, needs right 32 (`CanSeeDashboard`), and caps at 3001 rows.
+- New field group **"Chart Search Export (verified)"** (ids 901–930) = those columns (the four internal `*_ID` columns are left out). Includes real dates the old list lacked: Received, Discharge, Last Changed, Last Image Receipt. PHI flagged: MRN, DOB, Patient Name, Long Patient ID.
+- New template **Chart Search Export (all columns)**. Date basis now also offers Received / Discharge / Approved / Completed (real filter params).
+- Fields 101–838 are still the original unverified list.
+
+**Backend (`server.js`, `node server.js`, no dependencies).** `POST /api/export` validates the spec (rejects aggregation or unknown fields), maps it to `ExportChartsQuery` params (`SentFrom/To`, `Facilities`, `Statuses`…), calls the Pulse API, keeps only the chosen columns in order, applies PHI masking server-side, and returns CSV. Without `ACS_API_URL` it returns a dry-run of the mapped request. Tested against a fake upstream only.
+
+**Not done yet / needs answers**
+- The UI doesn't call `/api/export` yet, and the spec has no `FACILITY_IDS` / `CHART_STATUS_IDS` (wizard uses names; the real query needs IDs). Needs a facility/status lookup.
+- Export route (`ACS_EXPORT_PATH`, default `/api/charts/export`) and auth scheme are guesses — confirm against the real controller.
+- Only the verified group can run through the backend; older field ids (101–838) are rejected.
+- Real query filters not yet in the UI: MRN, provider NPI, location, pending reason, assigned coder, etc.
