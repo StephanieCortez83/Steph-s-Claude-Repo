@@ -395,6 +395,9 @@
   .review-list span:last-child{font-weight:600;text-align:right;}
   .export-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
   .footnote{font-size:11px;color:var(--ink-soft);margin-top:16px;line-height:1.7;border-top:1px solid var(--line-soft);padding-top:12px;}
+  .run-box{margin-top:14px;padding:11px 14px;border-radius:8px;font-size:12.5px;line-height:1.6;border:1px solid var(--line);background:var(--line-soft);}
+  .run-box.ok{border-color:#2E7D32;} .run-box.err{border-color:var(--danger);} .run-box.warn{border-color:#E3C878;background:var(--amber-soft);}
+  .run-box code{font-family:'JetBrains Mono',monospace;font-size:11px;word-break:break-all;} .run-box ul{margin:6px 0 0 18px;padding:0;}
   .toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);
     background:var(--navy-deep);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;
@@ -727,6 +730,14 @@ const FIELD_LIBRARY = {
 };
 const FIELD_BY_ID = {};
 Object.values(FIELD_LIBRARY).flat().forEach(f => FIELD_BY_ID[f.id] = f);
+
+/* FAKE lookups — placeholders until real facility / CHART_STATUS_ID lookups exist. */
+const FAKE_FACILITY_IDS = {"TIA - Playa Vista":101,"TIA - West Hollywood":102,"Danville Regional":103,"CHOA - Egleston":104,"CHOA - Scottish Rite":105};
+const FAKE_STATUS_IDS = {"WIP":1,"Coded":2,"QA Review":3,"Ready to Submit":4,"Submitted":5,"Billed":6};
+function facilityIdsFor(scope){
+  if(scope==="All authorized facilities") return Object.values(FAKE_FACILITY_IDS);
+  return scope.split(",").map(n=>FAKE_FACILITY_IDS[n.trim()]).filter(Boolean);
+}
 
 const STATUS_OPTIONS = ["WIP","Coded","QA Review","Ready to Submit","Submitted","Billed"];
 const DATE_BASIS_OPTIONS = ["Date of Service (DOS)","Sent Date","Received Date","Discharge Date","Approved Date","Completed Date"];
@@ -1759,9 +1770,11 @@ function renderReview(){
 
   <div class="export-actions">
     <button class="btn teal" onclick="downloadSample()" ${!cols.length?'disabled':''}>⬇ Download sample ${state.EXPORT_FORMAT==='JSON'?'.json':state.EXPORT_FORMAT==='CSV'?'.csv':'.xlsx'} file</button>
-    <button class="btn primary" onclick="downloadDefinition()">Download the full spec (.json)</button>
+    <button class="btn primary" onclick="runExport()" ${!cols.length?'disabled':''}>▶ Run export</button>
+    <button class="btn" onclick="downloadDefinition()">Download the full spec (.json)</button>
     <button class="btn" onclick="copyForTicket()">Copy a plain-text summary</button>
   </div>
+  <div id="runResult"></div>
   <div class="footnote">The sample file uses made-up rows just to show the layout — no real chart or patient data is touched by this tool. Real exports return stored values only: no totals, rates, or other calculations are ever added. The "full spec" download has all the technical detail (matching Pulse's own EXPORT_DEFINITION / EXPORT_COLUMN format) in case you're handing this to someone else to build.</div>
 
   <div class="sub-box">
@@ -1943,6 +1956,8 @@ function buildDefinitionObject(){
     },
     RUNTIME_FILTERS: {
       CHART_STATUSES: state.CHART_STATUSES,
+      CHART_STATUS_IDS: state.CHART_STATUSES.map(n=>FAKE_STATUS_IDS[n]),
+      FACILITY_IDS: facilityIdsFor(state.FACILITY_SCOPE),
       DATE_BASIS: state.DATE_BASIS,
       DATE_START: state.DATE_START || null,
       DATE_END: state.DATE_END || null,
@@ -1958,6 +1973,25 @@ function buildDefinitionObject(){
       FORMAT_STRING: c.format || null,
     })),
   };
+}
+async function runExport(){
+  const box = document.getElementById('runResult');
+  const show = (cls,html)=>{ box.innerHTML = `<div class="run-box ${cls}">${html}</div>`; };
+  show('', 'Running…');
+  let res;
+  try{
+    res = await fetch('/api/export', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(buildDefinitionObject())});
+  }catch(e){
+    return show('err', "Couldn't reach the export server. Start it with <code>node server.js</code> and open this page from <code>http://localhost:3000</code>.");
+  }
+  const type = res.headers.get('content-type')||'';
+  if(type.includes('text/csv')){
+    triggerDownload(await res.blob(), (safeName(state.NAME)||'export')+'.csv');
+    return show('ok', `Done — ${res.headers.get('x-row-count')} rows downloaded.`);
+  }
+  const data = await res.json().catch(()=>({errors:['Unexpected response']}));
+  if(data.errors) return show('err', '<b>Can\'t run this yet:</b><ul>'+data.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>');
+  show('warn', `<b>Test run only — nothing was fetched.</b> ${esc(data.note||'')}<br>Request that would be sent: <code>${esc(data.request)}</code><br>Columns: ${data.columns.map(esc).join(', ')} · row cap ${data.maxRows} · PHI masking ${data.maskPhi?'on':'off'}<br><span style="color:var(--ink-soft)">Facility and status IDs are placeholders for now.</span>`);
 }
 function downloadDefinition(){
   const obj = buildDefinitionObject();
