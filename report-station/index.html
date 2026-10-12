@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse 2.0 — Raw Data Station</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    /* CorroHealth QBR template palette (extracted from theme + slide fills) */
+    --bg:#F8F5FF;
+    --panel:#FFFFFF;
+    --ink:#1A0E35;
+    --ink-soft:#666688;
+    --navy:#502E6D;        /* primary brand purple */
+    --navy-deep:#1A0E35;   /* deep purple-black */
+    --teal:#1C6A7C;        /* brand secondary accent */
+    --teal-soft:#F0EAF8;
+    --amber:#B5872A;       /* deepened for AA text contrast; swatch source E8B626 */
+    --amber-soft:#FBF1D9;
+    --line:#E3DCEF;
+    --line-soft:#F5F1FB;
+    --insp-bg:#1A0E35;
+    --insp-line:#2A1050;
+    --insp-label:#9B8AC2;
+    --insp-key:#E8B626;
+    --insp-val:#EDE8F8;
+    --insp-accent:#E8B626;
+    --danger:#C62828;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(80,46,109,0.07), 0 6px 20px -8px rgba(26,14,53,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:14.5px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:1320px;
+    margin:0 auto;
+    padding:28px 24px 60px;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:24px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  .brand .mark{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.14em;
+    color:var(--teal);
+    background:var(--teal-soft);
+    padding:4px 8px;
+    border-radius:6px;
+    text-transform:uppercase;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0;
+    color:var(--navy-deep);
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    max-width:560px;
+  }
+  .ctx{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.6;
+  }
+  .ctx b{color:var(--navy);}
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .rail{
+    display:flex;
+    gap:6px;
+    margin-bottom:20px;
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .rail button{
+    flex:1;
+    min-width:120px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 10px 9px;
+    text-align:left;
+    cursor:pointer;
+    transition:all .15s ease;
+    font-family:inherit;
+  }
+  .rail button .n{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    display:block;
+    letter-spacing:0.06em;
+  }
+  .rail button .t{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+    display:block;
+    margin-top:2px;
+  }
+  .rail button.active{
+    border-color:var(--teal);
+    background:var(--teal-soft);
+    box-shadow:var(--shadow);
+  }
+  .rail button.active .n{color:var(--teal);}
+  .rail button.done .n::after{content:" ✓";}
+  .rail button.done{opacity:0.75;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+    box-shadow:var(--shadow);
+  }
+  .step-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:1px solid var(--line-soft);
+    padding-bottom:14px;
+    margin-bottom:18px;
+  }
+  .step-head h2{
+    font-family:'Fraunces',serif;
+    font-size:20px;
+    margin:0 0 4px;
+    color:var(--navy-deep);
+  }
+  .step-head p{margin:0;color:var(--ink-soft);font-size:13px;max-width:520px;}
+  .state-chip{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--teal);
+    background:var(--teal-soft);
+    border:1px solid #C9B8DD;
+    padding:3px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy-deep);
+    margin-bottom:5px;
+  }
+  .field .hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--ink);
+    background:#fff;
+  }
+  input:focus, select:focus, textarea:focus, button:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+    border-color:var(--teal);
+  }
+  textarea{resize:vertical;min-height:56px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media (max-width:640px){.row2,.row3{grid-template-columns:1fr;}}
+
+  .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:640px){.choice-grid{grid-template-columns:1fr;}}
+  .choice{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    cursor:pointer;
+    background:#fff;
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .choice:hover{border-color:var(--teal);}
+  .choice input{margin-top:2px;flex-shrink:0;}
+  .choice .lab{font-weight:600;font-size:13px;}
+  .choice .desc{font-size:11.5px;color:var(--ink-soft);margin-top:1px;}
+  .choice.checked{border-color:var(--teal);background:var(--teal-soft);}
+
+  .fmt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media (max-width:640px){.fmt-grid{grid-template-columns:1fr;}}
+  .fmt-card{
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    padding:14px 12px;
+    cursor:pointer;
+    text-align:center;
+    background:#fff;
+  }
+  .fmt-card.sel{border-color:var(--navy);background:var(--teal-soft);}
+  .fmt-card .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:var(--navy);display:block;margin-bottom:4px;}
+  .fmt-card .lb{font-weight:700;font-size:14px;}
+  .fmt-card .sub{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:22px;padding-top:16px;border-top:1px solid var(--line-soft);}
+  .btn{
+    font-family:inherit;
+    font-weight:600;
+    font-size:13px;
+    padding:9px 16px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .btn.primary:hover{background:var(--navy-deep);}
+  .btn.teal{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn.sm{padding:5px 10px;font-size:12px;}
+
+  /* Field library / column builder */
+  .lib-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:760px){.lib-wrap{grid-template-columns:1fr;}}
+  .lib-top-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .lib-col h3, .sel-col h3{
+    font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin:0;
+  }
+  .select-all-top{font-size:11.5px;font-weight:600;color:var(--teal);display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;}
+  .lib-group{margin-bottom:14px;}
+  .lib-group-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .lib-group-title{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;}
+  .group-select-all{font-size:10.5px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:4px;cursor:pointer;}
+  .group-select-all:hover{color:var(--teal);}
+  .lib-item{
+    display:flex;align-items:center;gap:9px;cursor:pointer;
+    padding:7px 10px;border:1px solid var(--line-soft);border-radius:7px;margin-bottom:5px;background:#fafcfc;
+  }
+  .lib-item:hover{border-color:var(--teal);}
+  .lib-item input[type=checkbox]{flex-shrink:0;}
+  .lib-item-info{flex:1;}
+  .lib-item .nm{font-size:12.5px;font-weight:600;}
+  .lib-item .id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-soft);}
+  .sel-item{
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff;
+    transition:opacity .12s ease, border-color .12s ease, transform .12s ease;
+  }
+  .sel-item.dragging{opacity:0.4;}
+  .sel-item.drag-over{border-color:var(--teal);border-style:dashed;transform:scale(1.01);}
+  .sel-item.added{border-left:3px solid var(--gold-line, #B5872A);}
+  .added-tag{
+    font-size:9.5px;font-weight:700;color:#6B5115;background:var(--amber-soft);
+    border:1px solid #E3C878;padding:1px 6px;border-radius:20px;margin-left:8px;
+  }
+  .origin-note{
+    font-size:12.5px;color:var(--ink-soft);background:var(--line-soft);border:1px solid var(--line);
+    border-radius:8px;padding:9px 12px;margin-bottom:14px;
+  }
+  .origin-note b{color:var(--navy-deep);}
+  .origin-note.custom{background:transparent;border-style:dashed;}
+  .suggest-box{
+    background:var(--amber-soft);border:1px solid #E3C878;border-radius:8px;padding:11px 14px;margin-bottom:14px;
+  }
+  .suggest-title{font-size:12.5px;color:#6B5115;margin-bottom:8px;}
+  .suggest-title b{color:#4A3810;}
+  .suggest-chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{
+    font-family:inherit;font-size:11.5px;font-weight:700;color:#6B5115;background:#fff;
+    border:1px solid #E3C878;border-radius:20px;padding:4px 11px;cursor:pointer;
+  }
+  .chip:hover{background:#E3C878;color:#3A2A0D;}
+
+  /* Report-match suggestion screen (shown after the decision tree, or template picker) */
+  .match-card{
+    background:var(--panel);border:1.5px solid var(--teal);border-radius:12px;
+    padding:20px 22px;margin:18px 0;box-shadow:var(--shadow);text-align:center;
+  }
+  .match-card-title{font-family:'Fraunces',serif;font-size:19px;color:var(--navy-deep);margin-bottom:4px;}
+  .match-card-sub{font-size:12.5px;color:var(--teal);font-weight:600;}
+  .match-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  .sel-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .drag-row{display:flex;align-items:center;}
+  .drag-handle{
+    cursor:grab;color:var(--ink-soft);font-size:15px;margin-right:8px;line-height:1;user-select:none;
+  }
+  .drag-handle:active{cursor:grabbing;}
+  .sel-item-top .ord{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:#fff;background:var(--navy);
+    width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;
+  }
+  .sel-item-top .nm{font-weight:700;font-size:13px;}
+  .sel-item-actions button{
+    background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:14px;padding:2px 5px;
+  }
+  .sel-item-actions button:hover{color:var(--navy);}
+  .sel-item .mini-grid{display:grid;grid-template-columns:1.3fr 0.7fr;gap:8px;}
+  .sel-item .mini-grid input{font-size:12px;padding:6px 8px;}
+  .sel-item label{font-size:10.5px;color:var(--ink-soft);font-weight:600;margin-bottom:3px;display:block;}
+  .empty-note{
+    border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center;color:var(--ink-soft);font-size:12.5px;
+  }
+
+  /* Inspector panel */
+  .inspector{
+    position:sticky;
+    top:20px;
+    background:var(--insp-bg);
+    border-radius:var(--radius);
+    padding:20px 18px;
+    color:var(--insp-val);
+    font-family:'JetBrains Mono',monospace;
+    box-shadow: var(--shadow);
+  }
+  .inspector .insp-head{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;
+  }
+  .inspector .insp-head .tbl{font-size:12px;color:var(--insp-accent);font-weight:600;letter-spacing:0.03em;}
+  .inspector .insp-head .pk{font-size:10px;color:var(--insp-label);}
+  .insp-section{margin-bottom:14px;}
+  .insp-section-title{
+    font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--insp-label);
+    border-bottom:1px solid var(--insp-line);padding-bottom:5px;margin-bottom:7px;
+  }
+  .insp-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:11.5px;}
+  .insp-row .k{color:var(--insp-label);}
+  .insp-row .v{color:var(--insp-val);text-align:right;word-break:break-word;}
+  .insp-row .v.empty{color:#4A3A66;font-style:italic;}
+  .insp-row .v.bool-true{color:var(--insp-key);}
+  .insp-row .v.bool-false{color:#4A3A66;}
+  .insp-cols{max-height:190px;overflow-y:auto;padding-right:2px;}
+  .insp-cols::-webkit-scrollbar{width:5px;}
+  .insp-cols::-webkit-scrollbar-thumb{background:var(--insp-line);border-radius:4px;}
+  .insp-col-item{font-size:11px;color:var(--insp-val);padding:4px 0;border-bottom:1px solid var(--insp-line);}
+  .insp-col-item .cn{color:var(--insp-accent);}
+  .insp-foot{
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--insp-line);
+    font-size:10.5px;color:var(--insp-label);line-height:1.6;
+  }
+
+  /* Review step */
+  .preview-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;}
+  table.preview{width:100%;border-collapse:collapse;font-size:12px;}
+  table.preview th{
+    background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:600;position:sticky;top:0;white-space:nowrap;
+  }
+  table.preview td{padding:7px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap;}
+  table.preview tr:nth-child(even) td{background:#FAFBFC;}
+  .masked{color:var(--amber);font-style:italic;}
+  .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  @media (max-width:640px){.review-grid{grid-template-columns:1fr;}}
+  .review-block h4{font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);margin:0 0 8px;}
+  .review-list{font-size:13px;}
+  .review-list div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line-soft);}
+  .review-list span:last-child{font-weight:600;text-align:right;}
+  .export-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .footnote{font-size:11px;color:var(--ink-soft);margin-top:16px;line-height:1.7;border-top:1px solid var(--line-soft);padding-top:12px;}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--navy-deep);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;pointer-events:none;transition:all .25s ease;box-shadow:var(--shadow);z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .phi-banner{
+    display:flex;gap:10px;align-items:flex-start;background:var(--amber-soft);border:1px solid #E3C878;
+    border-radius:8px;padding:10px 12px;font-size:12px;color:#6B5115;margin-top:14px;
+  }
+
+  /* ---------------- Quick start / template picker ---------------- */
+  .qs-wrap{max-width:920px;margin:10px auto 0;}
+  .qs-head{text-align:center;margin-bottom:26px;}
+  .qs-head-top{display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;}
+  .btn.qs-build-own-btn{
+    font-family:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:24px;
+    border:1.5px solid var(--teal);background:#fff;color:var(--teal);cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;margin:14px 0;transition:background .12s ease,color .12s ease;
+  }
+  .btn.qs-build-own-btn:hover{background:var(--teal);color:#fff;}
+  .qs-head h2{font-family:'Fraunces',serif;font-size:26px;color:var(--navy-deep);margin:0 0 8px;}
+  .qs-head p{color:var(--ink-soft);font-size:14px;max-width:520px;margin:0 auto;}
+  .qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:700px){.qs-grid{grid-template-columns:1fr;}}
+  .qs-card{
+    background:var(--panel);border:1.5px solid var(--line);border-radius:12px;
+    padding:18px 18px 16px;cursor:pointer;text-align:left;box-shadow:var(--shadow);
+    transition:transform .12s ease, border-color .12s ease;
+    position:relative;
+  }
+  .qs-card:hover{border-color:var(--navy);transform:translateY(-2px);}
+  .qs-official-tag{
+    display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:0.03em;
+    color:var(--teal);background:var(--teal-soft);border:1px solid #C9B8DD;
+    padding:2px 7px;border-radius:20px;margin-bottom:8px;
+  }
+  .qs-card .qs-ic{font-size:26px;display:block;margin-bottom:8px;}
+  .qs-card .qs-t{font-weight:700;font-size:15.5px;color:var(--navy-deep);margin-bottom:4px;}
+  .qs-card .qs-d{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+  .qs-card .qs-go{font-size:12px;font-weight:700;color:var(--teal);margin-top:10px;display:inline-block;}
+  .qs-scratch{
+    margin-top:16px;text-align:center;padding:14px;border:1.5px dashed var(--line);border-radius:12px;
+    color:var(--ink-soft);font-size:13px;cursor:pointer;background:transparent;
+  }
+  .qs-scratch:hover{border-color:var(--teal);color:var(--teal);}
+  .qs-scratch b{color:inherit;}
+
+  /* ---------------- Decision tree (build-it-myself guidance) ---------------- */
+  .dt-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:26px 26px 22px;box-shadow:var(--shadow);margin-top:6px;
+  }
+  .dt-progress{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  .dt-question{font-family:'Fraunces',serif;font-size:19px;color:var(--navy-deep);margin-bottom:18px;}
+  .dt-options{display:flex;flex-direction:column;gap:9px;}
+  .dt-opt{
+    text-align:left;padding:12px 16px;border:1.5px solid var(--line);border-radius:9px;background:#fff;
+    font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;
+    transition:border-color .12s ease, background .12s ease, transform .12s ease;
+  }
+  .dt-opt:hover{border-color:var(--navy);background:var(--teal-soft);transform:translateX(2px);}
+  .dt-opt .rec{font-weight:400;color:var(--teal);font-size:11.5px;margin-left:6px;}
+  .dt-nav{display:flex;justify-content:space-between;align-items:flex-start;margin-top:16px;}
+  .dt-nav-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .dt-back{
+    font-size:12.5px;font-weight:600;color:var(--ink-soft);background:none;border:none;cursor:pointer;padding:6px 0;
+  }
+  .dt-back:hover{color:var(--teal);}
+  .dt-skip{
+    font-size:12px;color:var(--ink-soft);background:none;border:none;cursor:pointer;text-decoration:underline;
+    text-decoration-color:transparent;padding:6px 0;
+  }
+  .dt-skip:hover{text-decoration-color:var(--ink-soft);}
+  .dt-trail{font-size:11.5px;color:var(--ink-soft);margin-top:14px;line-height:1.6;}
+  .dt-trail b{color:var(--navy);}
+  .switch-template{
+    font-size:12px;font-weight:600;color:var(--teal);background:none;border:none;cursor:pointer;
+    padding:0;text-decoration:underline;text-decoration-color:transparent;
+  }
+  .switch-template:hover{text-decoration-color:var(--teal);}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+  .btn.template-switch{
+    font-family:inherit;font-weight:700;font-size:13px;padding:10px 18px;border-radius:24px;
+    border:1.5px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow);
+    transition:transform .12s ease, background .12s ease;
+  }
+  .btn.template-switch:hover{background:var(--navy-deep);transform:translateY(-1px);}
+  .btn.template-switch .ic{font-size:14px;}
+  .header-btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .btn.template-switch.subs-btn{background:var(--teal);border-color:var(--teal);}
+  .btn.template-switch.subs-btn:hover{background:#155a69;}
+
+  /* ---------------- Subscriptions screen ---------------- */
+  .subs-wrap{max-width:900px;margin:10px auto 0;}
+  .subs-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .subs-header h2{font-family:'Fraunces',serif;font-size:24px;color:var(--navy-deep);margin:0 0 6px;}
+  .subs-header p{color:var(--ink-soft);font-size:13px;margin:0;max-width:520px;}
+  .subs-loading{text-align:center;padding:60px 0;color:var(--ink-soft);font-size:13.5px;}
+  .subs-empty{border:1px dashed var(--line);border-radius:10px;padding:32px;text-align:center;color:var(--ink-soft);}
+  .subs-empty .big{font-size:28px;display:block;margin-bottom:10px;}
+  .sub-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+    margin-bottom:12px;box-shadow:var(--shadow);
+  }
+  .sub-card.paused{opacity:0.65;}
+  .sub-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .sub-card-title{font-weight:700;font-size:14.5px;color:var(--navy-deep);}
+  .sub-status{
+    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+    padding:3px 9px;border-radius:20px;white-space:nowrap;
+  }
+  .sub-status.active{background:var(--teal-soft);color:var(--teal);}
+  .sub-status.paused{background:var(--line-soft);color:var(--ink-soft);}
+  .sub-status.ended{background:var(--amber-soft);color:var(--amber);}
+  .sub-meta{font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:10px;}
+  .sub-meta b{color:var(--ink);font-weight:600;}
+  .sub-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .sub-actions button{
+    font-family:inherit;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:6px;cursor:pointer;
+  }
+  .sub-actions .edit-btn{background:none;border:1px solid var(--navy);color:var(--navy);}
+  .sub-actions .pause-btn{background:none;border:1px solid var(--teal);color:var(--teal);}
+  .sub-actions .delete-btn{background:none;border:1px solid var(--danger);color:var(--danger);}
+  .sub-box{
+    border:1px solid var(--line);border-radius:9px;padding:16px;margin-top:20px;background:#fafcfc;
+  }
+  .sub-box-head{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .sub-box-head label{font-weight:700;font-size:13.5px;color:var(--navy-deep);cursor:pointer;}
+  .sub-box .field{margin-top:12px;}
+  .no-end-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--ink-soft);}
+
+  /* ---------------- Guidance helpers ---------------- */
+  .step-progress{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:4px;}
+  .autofill-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    background:var(--line-soft);border:1px dashed #C9B8DD;border-radius:8px;padding:9px 12px;margin-bottom:18px;
+  }
+  .autofill-bar span{font-size:12.5px;color:var(--ink-soft);}
+  .btn.autofill{
+    background:#fff;border:1.5px solid var(--teal);color:var(--teal);font-size:12px;padding:6px 12px;white-space:nowrap;
+  }
+  .btn.autofill:hover{background:var(--teal);color:#fff;}
+  .qmark{
+    display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;
+    background:var(--line-soft);color:var(--teal);border:1px solid var(--line);font-size:10.5px;font-weight:700;
+    cursor:pointer;margin-left:5px;vertical-align:middle;font-family:'Inter',sans-serif;
+  }
+  .qnote{
+    display:none;background:var(--teal-soft);border:1px solid #C9B8DD;border-radius:7px;
+    padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0 4px;line-height:1.5;
+  }
+  .qnote.open{display:block;}
+  details.advanced{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:2px 12px;}
+  details.advanced summary{
+    cursor:pointer;font-size:12.5px;font-weight:600;color:var(--teal);padding:10px 0;list-style:none;
+  }
+  details.advanced summary::-webkit-details-marker{display:none;}
+  details.advanced summary::before{content:"▸ ";}
+  details.advanced[open] summary::before{content:"▾ ";}
+  details.advanced .adv-body{padding-bottom:14px;}
+
+  .checklist{border:1px solid var(--line);border-radius:9px;padding:4px 14px;margin-bottom:18px;background:#fff;}
+  .check-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);}
+  .check-row:last-child{border-bottom:none;}
+  .check-row .cl{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .check-row .badge{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;color:#fff;}
+  .check-row .badge.ok{background:#2E7D32;}
+  .check-row .badge.warn{background:var(--amber);}
+  .check-row .fixbtn{font-size:11.5px;font-weight:700;color:var(--teal);background:none;border:1px solid var(--teal);border-radius:6px;padding:3px 9px;cursor:pointer;}
+  .all-good{display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13.5px;font-weight:600;color:#2E7D32;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div>
+      <div class="brand">
+        <span class="mark">Pulse 2.0 · Self-Service Data</span>
+      </div>
+      <h1>Raw Data Station</h1>
+      <div class="subtitle">Pick your filters and the columns you want. You get the rows exactly as Pulse stores them — no formulas, no totals, no calculations.</div>
+      <div class="header-btn-row">
+        <button class="btn template-switch" id="switchTplBtn" onclick="reopenQuickStart()" style="display:none;"><span class="ic">🔄</span> Start over with a template</button>
+        <button class="btn template-switch subs-btn" id="manageSubsBtn" onclick="openSubscriptionsScreen()" style="display:none;"><span class="ic">📬</span> Manage Subscriptions</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="ctx">workflow: <b>ChartDataExportProcessing</b><br>rights required: <b>CanSeeDashboard (32)</b><br>PHI masking: <b>enforced by default</b><br>output: <b>raw rows · no calculations</b></div>
+    </div>
+  </header>
+
+  <div id="quickStartScreen"></div>
+  <div id="subscriptionsScreen" style="display:none;"></div>
+
+  <div class="layout" id="wizardLayout" style="display:none;">
+    <div>
+      <div class="rail" id="rail"></div>
+      <div class="card" id="stepCard"></div>
+    </div>
+
+    <aside class="inspector" id="inspector"></aside>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   Reference data — mirrors EXPORT_FIELD / EXPORT_FIELD_TYPE and
+   the field groupings implied by Chart Search + Chart Data Export.
+   RAW DATA ONLY: every field here is a stored value returned as-is.
+   No counts, sums, averages, rates-of-X, percentages or scores —
+   anything that would need a formula is deliberately left out.
+   -------------------------------------------------------------- */
+if(!window.storage){
+  // localStorage-backed stand-in for the Claude.ai artifact storage API
+  window.storage = {
+    async list(prefix){ return {keys: Object.keys(localStorage).filter(k=>k.startsWith(prefix))}; },
+    async get(k){ const v = localStorage.getItem(k); return v===null ? null : {key:k, value:v}; },
+    async set(k,v){ localStorage.setItem(k,v); return {key:k, value:v}; },
+    async delete(k){ localStorage.removeItem(k); return {key:k, deleted:true}; },
+  };
+}
+
+const FIELD_LIBRARY = {
+  "Chart Demographics": [
+    {id: 101, name: "Medical Record Number", phi:true},
+    {id: 102, name: "Patient Name", phi:true},
+    {id: 103, name: "Date of Birth", phi:true},
+    {id: 104, name: "Facility Name", phi:false},
+    {id: 105, name: "Facility Code", phi:false},
+    {id: 106, name: "Date of Service", phi:false},
+    {id: 107, name: "Encounter / Account Number", phi:false},
+    {id: 108, name: "Patient Disposition", phi:false},
+  ],
+  "Coding & Billing": [
+    {id: 201, name: "CPT / HCPCS Code", phi:false},
+    {id: 202, name: "Modifier 1", phi:false},
+    {id: 203, name: "Modifier 2", phi:false},
+    {id: 204, name: "ICD-10 Diagnosis Code", phi:false},
+    {id: 205, name: "Units", phi:false},
+    {id: 206, name: "Charge Amount", phi:false},
+    {id: 207, name: "RVU", phi:false},
+    {id: 208, name: "Chart Adjustment Reason", phi:false},
+  ],
+  "Status & Workflow": [
+    {id: 301, name: "Chart Status", phi:false},
+    {id: 302, name: "Assigned Coder", phi:false},
+    {id: 303, name: "Submission Date", phi:false},
+    {id: 304, name: "Sent Date", phi:false},
+    {id: 305, name: "Service Agreement", phi:false},
+  ],
+  "Auditing": [
+    {id: 401, name: "Auditor", phi:false},
+    {id: 402, name: "Audit Status", phi:false},
+    {id: 403, name: "Audit Finding", phi:false},
+    {id: 404, name: "Audit Type Code (C/A/A2/P)", phi:false},
+  ],
+  "Facility & Contract": [
+    {id: 501, name: "Organization", phi:false},
+    {id: 502, name: "Parent Company", phi:false},
+    {id: 503, name: "Rate Class", phi:false},
+    {id: 504, name: "Service Model", phi:false},
+    {id: 505, name: "Region", phi:false},
+    {id: 506, name: "State", phi:false},
+    {id: 507, name: "Facility Type", phi:false},
+    {id: 508, name: "Facility Classification", phi:false},
+    {id: 509, name: "EMR", phi:false},
+    {id: 510, name: "CCS Rate", phi:false},
+    {id: 511, name: "FS with Obs Rate", phi:false},
+    {id: 512, name: "Pro Fee Rate", phi:false},
+    {id: 513, name: "Facility E&M Rate", phi:false},
+    {id: 514, name: "CCS Obs Only Rate", phi:false},
+    {id: 515, name: "Patient Class Rate", phi:false},
+    {id: 606, name: "Account Manager Region", phi:false},
+  ],
+  "Infusion & Injection": [
+    {id: 816, name: "Medication Name", phi:false},
+  ],
+  "Pended Charts": [
+    {id: 821, name: "Pended Reason", phi:false},
+    {id: 822, name: "Pended By Provider", phi:false},
+  ],
+  "Reconciliation": [
+    {id: 831, name: "Physician CPT Code", phi:false},
+    {id: 832, name: "Facility CPT Code", phi:false},
+    {id: 833, name: "Mismatch Type", phi:false},
+    {id: 834, name: "Adjustment Indicator", phi:false},
+    {id: 835, name: "History Rating", phi:false},
+    {id: 836, name: "Exam Rating", phi:false},
+    {id: 837, name: "MDM Rating", phi:false},
+    {id: 838, name: "Reconciliation Comment", phi:false},
+  ],
+};
+const FIELD_BY_ID = {};
+Object.values(FIELD_LIBRARY).flat().forEach(f => FIELD_BY_ID[f.id] = f);
+
+const STATUS_OPTIONS = ["WIP","Coded","QA Review","Ready to Submit","Submitted","Billed"];
+const DATE_BASIS_OPTIONS = ["Date of Service (DOS)","Sent Date"];
+const FACILITY_OPTIONS = [
+  "All authorized facilities",
+  "TIA - Playa Vista",
+  "TIA - West Hollywood",
+  "Danville Regional",
+  "CHOA - Egleston",
+  "CHOA - Scottish Rite",
+];
+
+/* ---------------------------------------------------------------
+   Wizard state — field names match EXPORT_DEFINITION / EXPORT_COLUMN
+   -------------------------------------------------------------- */
+let state = {
+  NAME: "",
+  DESCRIPTION: "",
+  EXPORT_FORMAT: "EXCEL",           // EXCEL | CSV | JSON
+  INCLUDE_FACILITY_SERVICES: true,
+  INCLUDE_FACILITY_PROCEDURES: false,
+  INCLUDE_PHYSICIAN_SERVICES: false,
+  INCLUDE_PHYSICIAN_PROCEDURES: false,
+  INCLUDE_CHART_ADJUSTMENTS: false,
+  CPT_LOW: "",
+  CPT_HIGH: "",
+  CHART_STATUSES: [],
+  DATE_BASIS: DATE_BASIS_OPTIONS[0],
+  DATE_START: "",
+  DATE_END: "",
+  FACILITY_SCOPE: "All authorized facilities",
+  MASK_PHI: true,
+  GENERATE_COLUMN_HEADINGS: true,
+  APPEND_DATA: false,
+  FILE_NAMING_CONVENTION: "{ReportName}_{FacilityCode}_{YYYYMMDD}",
+  TEMPLATE_NAME: "",
+  EXCEL_STARTING_ROW: 1,
+  EXCEL_STARTING_COLUMN: 1,
+  EXCEL_PAGE_NAME: "Chart Export",
+  COLUMNS: [], // {fieldId, caption, order, width, format}
+  SUBSCRIPTION: { enabled:false, frequency:"Weekly", dayOfWeek:"1", dayOfMonth:"1", recipients:"", startDate:"", noEndDate:true, endDate:"" },
+  BASED_ON_REPORT: "",
+  TEMPLATE_BASE_FIELD_IDS: [],
+};
+let currentEditingSubId = null;
+
+const STEPS = [
+  {code:"CONFIGURATION_LOADED", label:"Data Scope"},
+  {code:"DATA_FILTERED", label:"Filters & PHI"},
+  {code:"CONFIGURATION_LOADED", label:"Columns"},
+  {code:"FILE_GENERATED", label:"Layout"},
+  {code:"EXPORT_COMPLETED", label:"Review & Generate"},
+];
+let current = 0;
+let maxReached = 0;
+let showQuickStart = true;
+
+/* ---------------------------------------------------------------
+   Templates — pick one and every step is pre-filled. Grounded in
+   real report types coders and POs build most often.
+   -------------------------------------------------------------- */
+function colsFrom(ids){ return ids.map(id=>({fieldId:id, caption:FIELD_BY_ID[id].name, width:18, format:""})); }
+
+function applyPreset(o, ids){
+  Object.assign(state, {
+    EXPORT_FORMAT:"EXCEL",
+    INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:false, INCLUDE_PHYSICIAN_SERVICES:false, INCLUDE_PHYSICIAN_PROCEDURES:false, INCLUDE_CHART_ADJUSTMENTS:false,
+    CPT_LOW:"", CPT_HIGH:"", CHART_STATUSES:[],
+    DATE_BASIS:"Date of Service (DOS)", DATE_START:"", DATE_END:"", FACILITY_SCOPE:"All authorized facilities", MASK_PHI:true,
+    GENERATE_COLUMN_HEADINGS:true, APPEND_DATA:false, FILE_NAMING_CONVENTION:"{ReportName}_{FacilityCode}_{YYYYMMDD}",
+    TEMPLATE_NAME:"", EXCEL_STARTING_ROW:1, EXCEL_STARTING_COLUMN:1,
+  }, o);
+  state.EXCEL_PAGE_NAME = o.EXCEL_PAGE_NAME || o.NAME.substring(0,31);
+  state.BASED_ON_REPORT = o.NAME;
+  state.COLUMNS = colsFrom(ids);
+  state.TEMPLATE_BASE_FIELD_IDS = ids.slice();
+}
+
+const PRESETS = {
+  billingDetailFacility: {
+    icon:"🧾", title:"Billing Detail",
+    blurb:"One row per billed service — patient, dates, CPT, units, diagnosis, submission date.",
+    apply(){ applyPreset({NAME:"Billing Detail", DESCRIPTION:"Row-level billing detail for a facility and billing period — demographics, service dates, CPT, units, and diagnosis.",
+      INCLUDE_FACILITY_PROCEDURES:true, CHART_STATUSES:["Billed"], DATE_BASIS:"Sent Date", EXCEL_PAGE_NAME:"Billing Detail"}, [101,102,107,104,106,201,205,204,303]); }
+  },
+  mismatchCharge: {
+    icon:"🔍", title:"Mismatch Charges",
+    blurb:"Physician vs. facility CPT codes side by side, with ratings and reconciliation comments.",
+    apply(){ applyPreset({NAME:"Mismatch Charges", DESCRIPTION:"Physician and facility CPT codes side by side, with mismatch type, service-component ratings, and reconciliation comments.",
+      INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:true, EXCEL_PAGE_NAME:"Mismatch Charges"}, [104,107,106,831,832,833,834,837,838]); }
+  },
+  facilityRateSetup: {
+    icon:"🏥", title:"Facility & Rate Setup",
+    blurb:"One row per facility — organization, region, EMR, and each configured rate as stored.",
+    apply(){ applyPreset({NAME:"Facility & Rate Setup", DESCRIPTION:"Facility list with organization, classification, EMR, and the configured rate values — no totals or rollups.",
+      INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, DATE_BASIS:"Sent Date", EXCEL_PAGE_NAME:"Facility Rate Setup"}, [501,105,502,104,503,504,505,506,507,508,509,510,511,512,513,514,515]); }
+  },
+  auditDetail: {
+    icon:"✅", title:"Audit Detail",
+    blurb:"One row per audited chart — auditor, audit type, status, and finding.",
+    apply(){ applyPreset({NAME:"Audit Detail", DESCRIPTION:"Row-level audit results: who audited which chart, audit type (C/A/A2/P), status, and finding.",
+      INCLUDE_FACILITY_PROCEDURES:true, DATE_BASIS:"Sent Date", EXCEL_PAGE_NAME:"Audit Detail"}, [104,107,106,401,404,402,403,304]); }
+  },
+  urgentCareVisits: {
+    icon:"🩹", title:"Urgent Care Visits",
+    blurb:"Visit-level rows for CPT 99211–99215, submitted or billed charts.",
+    apply(){ applyPreset({NAME:"Urgent Care Visits", DESCRIPTION:"Visit-level rows for urgent care E/M codes (CPT 99211-99215).",
+      CPT_LOW:"99211", CPT_HIGH:"99215", CHART_STATUSES:["Submitted","Billed"], EXCEL_PAGE_NAME:"Urgent Care Visits"}, [104,107,106,201,301]); }
+  },
+  edVisits: {
+    icon:"🚑", title:"Emergency Department Visits",
+    blurb:"Visit-level rows for CPT 99281–99291, submitted or billed charts.",
+    apply(){ applyPreset({NAME:"Emergency Department Visits", DESCRIPTION:"Visit-level rows for ED E/M and critical care codes (CPT 99281-99291).",
+      CPT_LOW:"99281", CPT_HIGH:"99291", CHART_STATUSES:["Submitted","Billed"], EXCEL_PAGE_NAME:"ED Visits"}, [104,107,106,201,301]); }
+  },
+  infusionMedication: {
+    icon:"💉", title:"Infusion & Injection Medications",
+    blurb:"One row per charted medication with its CPT code and encounter.",
+    apply(){ applyPreset({NAME:"Infusion & Injection Medications", DESCRIPTION:"Medication-level rows for infusion and injection charts.",
+      INCLUDE_FACILITY_PROCEDURES:true, CHART_STATUSES:["Submitted","Billed"], EXCEL_PAGE_NAME:"Medications"}, [104,107,106,816,201]); }
+  },
+  pendedCharts: {
+    icon:"⏳", title:"Pended Charts",
+    blurb:"One row per pended chart — reason, provider, and current status.",
+    apply(){ applyPreset({NAME:"Pended Charts", DESCRIPTION:"Pended charts listed by encounter with reason, provider, and status.",
+      INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, CHART_STATUSES:["WIP","Coded","QA Review"], EXCEL_PAGE_NAME:"Pended Charts"}, [104,107,106,301,821,822]); }
+  },
+};
+
+function renderQuickStart(){
+  const cards = Object.entries(PRESETS).map(([key,p])=>`
+    <div class="qs-card" onclick="chooseTemplate('${key}')">
+      <span class="qs-official-tag">Raw rows · no calculations</span>
+      <span class="qs-ic">${p.icon}</span>
+      <div class="qs-t">${p.title}</div>
+      <div class="qs-d">${p.blurb}</div>
+      <span class="qs-go">Start from this →</span>
+    </div>`).join("");
+  return `
+  <div class="qs-wrap">
+    <div class="qs-head">
+      <h2>What data do you need?</h2>
+      <p>Start from a ready-made row-level view, or build your own. Every column is a stored value returned as-is — nothing is summed, averaged, or scored.</p>
+      <button class="btn qs-build-own-btn" onclick="startDecisionTree()">✍️ I'll build it myself</button>
+    </div>
+    <div class="qs-grid">${cards}</div>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------
+   Decision tree — for people who don't want a full template but
+   still want help landing on the right filters before they build.
+   -------------------------------------------------------------- */
+let dtActive = false;
+let dtCurrent = "start";
+let dtHistory = [];
+
+const DT = {
+  start: {
+    text: "What's this report mainly about?",
+    options: [
+      {label:"Coding & billing data", next:"scope"},
+      {label:"Auditing / QA coverage", next:"auditScope"},
+      {label:"Billing correction or adjustments", next:"stages", apply(){
+        Object.assign(state, {INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:false, INCLUDE_PHYSICIAN_PROCEDURES:false, INCLUDE_CHART_ADJUSTMENTS:true});
+      }},
+      {label:"Quality measures (MIPS)", next:"stages", apply(){
+        Object.assign(state, {INCLUDE_FACILITY_SERVICES:false, INCLUDE_FACILITY_PROCEDURES:false, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:false});
+      }},
+      {label:"Chart status / workflow tracking", next:"stages", apply(){
+        Object.assign(state, {INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:false, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:false, INCLUDE_CHART_ADJUSTMENTS:false});
+      }},
+      {label:"Coder / auditor quality tracking", next:"stages", apply(){
+        Object.assign(state, {INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:false, INCLUDE_PHYSICIAN_PROCEDURES:false, INCLUDE_CHART_ADJUSTMENTS:false});
+      }},
+      {label:"Not sure — just show me everything", next:null, apply(){
+        Object.assign(state, {INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:true, CHART_STATUSES:[], MASK_PHI:true});
+      }},
+    ]
+  },
+  scope: {
+    text: "Do you need facility charges, physician charges, or both?",
+    options: [
+      {label:"Facility only", next:"stages", apply(){ Object.assign(state,{INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:false, INCLUDE_PHYSICIAN_PROCEDURES:false}); }},
+      {label:"Physician only", next:"stages", apply(){ Object.assign(state,{INCLUDE_FACILITY_SERVICES:false, INCLUDE_FACILITY_PROCEDURES:false, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true}); }},
+      {label:"Both", next:"stages", apply(){ Object.assign(state,{INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true}); }},
+    ]
+  },
+  auditScope: {
+    text: "Should the report include adjustments made after the chart was billed?",
+    options: [
+      {label:"Yes, include those adjustments", next:"stages", apply(){ Object.assign(state,{INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:true}); }},
+      {label:"No, just the original charges", next:"stages", apply(){ Object.assign(state,{INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:false}); }},
+    ]
+  },
+  stages: {
+    text: "Which chart stages matter for this report?",
+    options: [
+      {label:"Only finished charts", rec:"Submitted / Billed", next:"phi", apply(){ state.CHART_STATUSES=["Submitted","Billed"]; }},
+      {label:"Still-in-progress charts too", rec:"WIP / Coded / QA Review", next:"phi", apply(){ state.CHART_STATUSES=["WIP","Coded","QA Review"]; }},
+      {label:"Every stage — don't filter by status", next:"phi", apply(){ state.CHART_STATUSES=[]; }},
+    ]
+  },
+  phi: {
+    text: "Should patient name and MRN stay masked in the file?",
+    options: [
+      {label:"Yes — keep it masked", rec:"recommended", next:null, apply(){ state.MASK_PHI=true; }},
+      {label:"No — I need full patient info", next:null, apply(){ state.MASK_PHI=false; }},
+    ]
+  },
+};
+
+function startDecisionTree(){
+  dtActive = true;
+  dtCurrent = "start";
+  dtHistory = [];
+  renderApp();
+}
+function dtChoose(i){
+  const q = DT[dtCurrent];
+  const opt = q.options[i];
+  if(opt.apply) opt.apply();
+  dtHistory.push(dtCurrent);
+  if(opt.next){
+    dtCurrent = opt.next;
+    renderApp();
+  } else {
+    finishDecisionTree();
+  }
+}
+function dtBack(){
+  if(dtHistory.length){
+    dtCurrent = dtHistory.pop();
+    renderApp();
+  } else {
+    dtActive = false;
+    renderApp();
+  }
+}
+/* ---------------------------------------------------------------
+   Report matching — compares whatever scope/status the person has
+   configured against the starting-view signatures, so custom
+   builds get pointed at the closest real report instead of
+   reinventing one from scratch.
+   -------------------------------------------------------------- */
+let PRESET_SIGNATURES = null;
+function scopeSignatureOf(s){
+  return [s.INCLUDE_FACILITY_SERVICES, s.INCLUDE_FACILITY_PROCEDURES, s.INCLUDE_PHYSICIAN_SERVICES, s.INCLUDE_PHYSICIAN_PROCEDURES, s.INCLUDE_CHART_ADJUSTMENTS];
+}
+function getPresetSignatures(){
+  if(PRESET_SIGNATURES) return PRESET_SIGNATURES;
+  const backup = JSON.parse(JSON.stringify(state));
+  PRESET_SIGNATURES = {};
+  Object.keys(PRESETS).forEach(key=>{
+    PRESETS[key].apply();
+    PRESET_SIGNATURES[key] = {
+      key,
+      name: state.BASED_ON_REPORT,
+      scope: scopeSignatureOf(state),
+      statuses: state.CHART_STATUSES.slice(),
+      fieldIds: state.COLUMNS.map(c=>c.fieldId),
+    };
+  });
+  Object.assign(state, backup);
+  return PRESET_SIGNATURES;
+}
+function bestMatchFor(candidateScope, candidateStatuses){
+  const sigs = getPresetSignatures();
+  let best = null;
+  Object.values(sigs).forEach(sig=>{
+    let score = 0;
+    sig.scope.forEach((v,i)=>{ if(v===candidateScope[i]) score++; });
+    const statusOverlap = sig.statuses.filter(st=>candidateStatuses.includes(st)).length;
+    score += Math.min(statusOverlap,2) * 0.3;
+    if(!best || score>best.score) best = {key:sig.key, score, name:sig.name, fieldIds:sig.fieldIds};
+  });
+  return best;
+}
+let pendingMatch = null;
+function renderMatchSuggestion(){
+  const m = pendingMatch;
+  return `<div class="qs-wrap">
+    <div class="qs-head">
+      <h2>This looks a lot like an existing view</h2>
+      <p>Based on your answers, this closely matches the <b>${esc(m.name)}</b> view — starting from it gives you its columns already, and you can still add or change anything afterward.</p>
+    </div>
+    <div class="match-card">
+      <div class="match-card-title">${esc(m.name)}</div>
+      <div class="match-card-sub">Raw data view · ${m.fieldIds.length} columns already defined for you</div>
+    </div>
+    <div class="match-actions">
+      <button class="btn primary" onclick="useMatchedTemplate()">Use the "${esc(m.name)}" template</button>
+      <button class="btn ghost" onclick="dismissMatch()">No thanks — keep building custom</button>
+    </div>
+  </div>`;
+}
+function useMatchedTemplate(){
+  const key = pendingMatch.key;
+  pendingMatch = null;
+  chooseTemplate(key);
+}
+function dismissMatch(){
+  pendingMatch = null;
+  showQuickStart = false;
+  current = 0;
+  maxReached = 0;
+  resetSubscriptionForm();
+  state.BASED_ON_REPORT = "";
+  state.TEMPLATE_BASE_FIELD_IDS = [];
+  renderApp();
+  toast("Building custom — no starting view matched closely enough to suggest");
+}
+
+function finishDecisionTree(){
+  dtActive = false;
+  const match = bestMatchFor(scopeSignatureOf(state), state.CHART_STATUSES);
+  if(match && match.score >= 4.5){
+    pendingMatch = match;
+    renderApp();
+    return;
+  }
+  showQuickStart = false;
+  current = 0;
+  maxReached = 0;
+  resetSubscriptionForm();
+  state.BASED_ON_REPORT = "";
+  state.TEMPLATE_BASE_FIELD_IDS = [];
+  renderApp();
+  toast("Your filters are set based on your answers — pick a name and your columns next");
+}
+function renderDecisionTree(){
+  const q = DT[dtCurrent];
+  const stepNum = dtHistory.length + 1;
+  return `
+  <div class="qs-wrap">
+    <div class="qs-head">
+      <h2>Let's narrow it down</h2>
+      <p>A few quick questions, then you'll build the report yourself — with the filters already set from your answers. We'll also flag it if this matches an existing view.</p>
+    </div>
+    <div class="dt-card">
+      <div class="dt-progress">Question ${stepNum}</div>
+      <div class="dt-question">${q.text}</div>
+      <div class="dt-options">
+        ${q.options.map((o,i)=>`<button class="dt-opt" onclick="dtChoose(${i})">${o.label}${o.rec?` <span class="rec">(${o.rec})</span>`:""}</button>`).join("")}
+      </div>
+      <div class="dt-nav">
+        <button class="dt-back" onclick="dtBack()">← Back</button>
+        <div class="dt-nav-right">
+          <button class="dt-skip" onclick="reopenQuickStart()">↩ Start over with a template</button>
+          <button class="dt-skip" onclick="startFromScratch()">Skip the questions — start blank instead</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function chooseTemplate(key){
+  PRESETS[key].apply();
+  showQuickStart = false;
+  dtActive = false;
+  pendingMatch = null;
+  current = 0;
+  maxReached = STEPS.length - 1;
+  resetSubscriptionForm();
+  renderApp();
+  toast("Filled in for you — look it over and click Continue");
+}
+function startFromScratch(){
+  showQuickStart = false;
+  dtActive = false;
+  pendingMatch = null;
+  current = 0;
+  maxReached = 0;
+  resetSubscriptionForm();
+  state.BASED_ON_REPORT = "";
+  state.TEMPLATE_BASE_FIELD_IDS = [];
+  renderApp();
+}
+function reopenQuickStart(){
+  showQuickStart = true;
+  dtActive = false;
+  pendingMatch = null;
+  renderApp();
+}
+let showSubscriptions = false;
+let subscriptionsList = [];
+let subscriptionsLoading = false;
+
+function renderApp(){
+  const qs = document.getElementById('quickStartScreen');
+  const wiz = document.getElementById('wizardLayout');
+  const subsScreen = document.getElementById('subscriptionsScreen');
+  const switchBtn = document.getElementById('switchTplBtn');
+  const subsBtn = document.getElementById('manageSubsBtn');
+  if(showSubscriptions){
+    qs.style.display = 'none';
+    wiz.style.display = 'none';
+    subsScreen.style.display = '';
+    switchBtn.style.display = 'none';
+    subsBtn.style.display = 'none';
+    subsScreen.innerHTML = renderSubscriptionsScreen();
+  } else if(showQuickStart){
+    qs.style.display = '';
+    wiz.style.display = 'none';
+    subsScreen.style.display = 'none';
+    switchBtn.style.display = dtActive ? '' : 'none';
+    subsBtn.style.display = 'none';
+    qs.innerHTML = pendingMatch ? renderMatchSuggestion() : (dtActive ? renderDecisionTree() : renderQuickStart());
+  } else {
+    qs.style.display = 'none';
+    wiz.style.display = '';
+    subsScreen.style.display = 'none';
+    switchBtn.style.display = '';
+    subsBtn.style.display = '';
+    render();
+  }
+  window.scrollTo({top:0, behavior:"instant"});
+}
+
+/* ---------------------------------------------------------------
+   Subscriptions — recurring delivery, persisted via window.storage
+   so they survive across sessions for this person.
+   -------------------------------------------------------------- */
+function resetSubscriptionForm(){
+  currentEditingSubId = null;
+  state.SUBSCRIPTION = { enabled:false, frequency:"Weekly", dayOfWeek:"1", dayOfMonth:"1", recipients:"", startDate:"", noEndDate:true, endDate:"" };
+}
+function openSubscriptionsScreen(){
+  showSubscriptions = true;
+  renderApp();
+  loadSubscriptions();
+}
+function closeSubscriptionsScreen(){
+  showSubscriptions = false;
+  renderApp();
+}
+async function loadSubscriptions(){
+  subscriptionsLoading = true;
+  if(showSubscriptions) document.getElementById('subscriptionsScreen').innerHTML = renderSubscriptionsScreen();
+  try{
+    const listResult = await window.storage.list('subscription:', false);
+    const keys = (listResult && listResult.keys) || [];
+    const items = [];
+    for(const k of keys){
+      try{
+        const r = await window.storage.get(k, false);
+        if(r && r.value) items.push(JSON.parse(r.value));
+      }catch(e){ /* skip unreadable entries */ }
+    }
+    items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    subscriptionsList = items;
+  }catch(e){
+    console.error("Failed to load subscriptions", e);
+    subscriptionsList = [];
+  }
+  subscriptionsLoading = false;
+  if(showSubscriptions) document.getElementById('subscriptionsScreen').innerHTML = renderSubscriptionsScreen();
+}
+function computeNextRun(sub){
+  const now = new Date();
+  let next;
+  if(sub.frequency === "Daily"){
+    next = new Date(now); next.setDate(next.getDate()+1); next.setHours(6,0,0,0);
+  } else if(sub.frequency === "Weekly"){
+    const target = parseInt(sub.dayOfWeek,10);
+    next = new Date(now); next.setHours(6,0,0,0);
+    let diff = (target - now.getDay() + 7) % 7;
+    if(diff === 0) diff = 7;
+    next.setDate(now.getDate()+diff);
+  } else {
+    const dom = parseInt(sub.dayOfMonth,10) || 1;
+    next = new Date(now.getFullYear(), now.getMonth(), dom, 6,0,0,0);
+    if(next <= now) next = new Date(now.getFullYear(), now.getMonth()+1, dom, 6,0,0,0);
+  }
+  if(sub.startDate){
+    const start = new Date(sub.startDate+"T06:00:00");
+    if(start > next) next = start;
+  }
+  if(sub.endDate){
+    const end = new Date(sub.endDate+"T23:59:59");
+    if(next > end) return null;
+  }
+  return next;
+}
+function frequencyLabel(sub){
+  if(sub.frequency === "Daily") return "Daily";
+  if(sub.frequency === "Weekly"){
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    return "Weekly on " + days[parseInt(sub.dayOfWeek,10)];
+  }
+  const dom = parseInt(sub.dayOfMonth,10) || 1;
+  const suffix = (dom===1||dom===21)?"st":(dom===2||dom===22)?"nd":(dom===3||dom===23)?"rd":"th";
+  return "Monthly on the " + dom + suffix;
+}
+function renderSubscriptionsScreen(){
+  if(subscriptionsLoading){
+    return `<div class="subs-wrap"><div class="subs-loading">Loading your subscriptions…</div></div>`;
+  }
+  const cards = subscriptionsList.length ? subscriptionsList.map(sub=>{
+    const next = sub.status === "Active" ? computeNextRun(sub) : null;
+    const ended = sub.status === "Active" && !next;
+    const statusClass = ended ? "ended" : (sub.status === "Active" ? "active" : "paused");
+    const statusLabel = ended ? "Ended" : (sub.status === "Active" ? "Active" : "Paused");
+    const nextText = ended ? "No further runs — end date has passed" : (next ? next.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"}) + " ~6:00 AM" : "—");
+    return `<div class="sub-card ${sub.status!=='Active'?'paused':''}">
+      <div class="sub-card-top">
+        <div class="sub-card-title">${esc(sub.name || "Untitled report")}</div>
+        <span class="sub-status ${statusClass}">${statusLabel}</span>
+      </div>
+      <div class="sub-meta">
+        <b>${frequencyLabel(sub)}</b> · sent to <b>${esc(sub.recipients)}</b><br>
+        Next run: ${nextText}
+      </div>
+      <div class="sub-actions">
+        <button class="edit-btn" onclick="editSubscription('${sub.id}')">Edit</button>
+        <button class="pause-btn" onclick="toggleSubscriptionStatus('${sub.id}')">${sub.status==='Active'?'Pause':'Resume'}</button>
+        <button class="delete-btn" onclick="deleteSubscription('${sub.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join("") : `<div class="subs-empty"><span class="big">📬</span>No subscriptions yet.<br>Build a report and check "Make this a recurring subscription" on the last step.</div>`;
+
+  return `<div class="subs-wrap">
+    <div class="subs-header">
+      <div><h2>Your Subscriptions</h2><p>Recurring deliveries you've set up. These are saved to your account and don't require rebuilding the report each time.</p></div>
+      <button class="btn ghost" onclick="closeSubscriptionsScreen()">← Back to the wizard</button>
+    </div>
+    ${cards}
+  </div>`;
+}
+async function saveSubscription(){
+  if(!state.SUBSCRIPTION.recipients.trim()){
+    toast("Add at least one recipient email first");
+    return;
+  }
+  const id = currentEditingSubId || ("sub_" + Date.now() + "_" + Math.random().toString(36).slice(2,7));
+  const record = {
+    id,
+    name: state.NAME || "Untitled report",
+    stateSnapshot: JSON.parse(JSON.stringify(state)),
+    frequency: state.SUBSCRIPTION.frequency,
+    dayOfWeek: state.SUBSCRIPTION.dayOfWeek,
+    dayOfMonth: state.SUBSCRIPTION.dayOfMonth,
+    recipients: state.SUBSCRIPTION.recipients,
+    startDate: state.SUBSCRIPTION.startDate,
+    endDate: state.SUBSCRIPTION.noEndDate ? "" : state.SUBSCRIPTION.endDate,
+    status: "Active",
+    createdAt: currentEditingSubId ? (subscriptionsList.find(s=>s.id===id)?.createdAt || Date.now()) : Date.now(),
+  };
+  try{
+    const result = await window.storage.set("subscription:"+id, JSON.stringify(record), false);
+    if(!result){ toast("Couldn't save the subscription — try again"); return; }
+    currentEditingSubId = id;
+    toast("Subscription saved — find it under \"Manage Subscriptions\"");
+    render();
+  }catch(e){
+    console.error(e);
+    toast("Couldn't save the subscription — try again");
+  }
+}
+async function toggleSubscriptionStatus(id){
+  try{
+    const r = await window.storage.get("subscription:"+id, false);
+    if(!r) return;
+    const rec = JSON.parse(r.value);
+    rec.status = rec.status === "Active" ? "Paused" : "Active";
+    await window.storage.set("subscription:"+id, JSON.stringify(rec), false);
+    toast(rec.status === "Active" ? "Subscription resumed" : "Subscription paused");
+    loadSubscriptions();
+  }catch(e){
+    console.error(e);
+    toast("Something went wrong — try again");
+  }
+}
+async function deleteSubscription(id){
+  try{
+    await window.storage.delete("subscription:"+id, false);
+    toast("Subscription deleted");
+    loadSubscriptions();
+  }catch(e){
+    console.error(e);
+    toast("Couldn't delete — try again");
+  }
+}
+function editSubscription(id){
+  const rec = subscriptionsList.find(s=>s.id===id);
+  if(!rec) return;
+  Object.assign(state, rec.stateSnapshot);
+  state.SUBSCRIPTION = { ...rec.stateSnapshot.SUBSCRIPTION, enabled:true, recipients:rec.recipients, frequency:rec.frequency, dayOfWeek:rec.dayOfWeek, dayOfMonth:rec.dayOfMonth, startDate:rec.startDate, noEndDate: !rec.endDate, endDate: rec.endDate };
+  currentEditingSubId = id;
+  showSubscriptions = false;
+  showQuickStart = false;
+  current = STEPS.length - 1;
+  maxReached = STEPS.length - 1;
+  renderApp();
+  toast('Loaded — make changes, then click "Update subscription" to save');
+}
+
+/* ---------------------------------------------------------------
+   Per-step "fill this in for me" shortcut — for people who skipped
+   the template picker but still want sensible defaults, one step
+   at a time.
+   -------------------------------------------------------------- */
+function autofillStep(idx){
+  switch(idx){
+    case 0:
+      Object.assign(state, {INCLUDE_FACILITY_SERVICES:true, INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, INCLUDE_CHART_ADJUSTMENTS:false});
+      break;
+    case 1:
+      Object.assign(state, {CHART_STATUSES:["Submitted","Billed"], DATE_BASIS:"Sent Date", FACILITY_SCOPE: state.FACILITY_SCOPE.trim() || "All authorized facilities", MASK_PHI:true});
+      break;
+    case 2:
+      if(!state.COLUMNS.length) state.COLUMNS = colsFrom([104,106,107,201,204,301]);
+      break;
+    case 3:
+      Object.assign(state, {
+        GENERATE_COLUMN_HEADINGS:true, APPEND_DATA:false,
+        FILE_NAMING_CONVENTION: state.FILE_NAMING_CONVENTION.trim() || "{ReportName}_{FacilityCode}_{YYYYMMDD}",
+        EXCEL_PAGE_NAME: state.EXCEL_PAGE_NAME.trim() || "Chart Export",
+      });
+      break;
+  }
+  render();
+  toast("Filled in with sensible defaults — change anything you like");
+}
+function toggleQ(btn){
+  const note = btn.nextElementSibling;
+  note.classList.toggle('open');
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------------------------------------------------------------
+   Rail
+   -------------------------------------------------------------- */
+function renderRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = "";
+  STEPS.forEach((s,i)=>{
+    const b = document.createElement('button');
+    b.className = "step-btn" + (i===current?" active":"") + (i < maxReached ? " done":"");
+    b.innerHTML = `<span class="n">${String(i+1).padStart(2,'0')} · ${s.code}</span><span class="t">${s.label}</span>`;
+    b.onclick = ()=>{ if(i<=maxReached){ current=i; render(); } };
+    rail.appendChild(b);
+  });
+}
+
+/* ---------------------------------------------------------------
+   Step renderers
+   -------------------------------------------------------------- */
+function stepHead(title, desc, stateCode){
+  return `<div class="step-progress">Step ${current+1} of ${STEPS.length}</div>
+  <div class="step-head">
+    <div><h2>${title}</h2><p>${desc}</p></div>
+    <span class="state-chip">${stateCode}</span>
+  </div>`;
+}
+function autofillBar(idx, note){
+  return `<div class="autofill-bar">
+    <span>${note}</span>
+    <button class="btn autofill" onclick="autofillStep(${idx})">✨ Fill this in for me</button>
+  </div>`;
+}
+function qmark(note){
+  return `<span class="qmark" onclick="toggleQ(this)">?</span><div class="qnote">${note}</div>`;
+}
+
+function fmtCard(val,label,sub){
+  return `<div class="fmt-card ${state.EXPORT_FORMAT===val?'sel':''}" onclick="setFormat('${val}')">
+    <span class="ic">${val}</span><span class="lb">${label}</span><div class="sub">${sub}</div>
+  </div>`;
+}
+function setFormat(v){ state.EXPORT_FORMAT=v; render(); }
+
+function renderScope(){
+  const items = [
+    ["INCLUDE_FACILITY_SERVICES","Facility services","What the facility billed for E/M visits and ancillary care"],
+    ["INCLUDE_FACILITY_PROCEDURES","Facility procedures","What the facility billed for CPT procedures"],
+    ["INCLUDE_PHYSICIAN_SERVICES","Physician services","What the physician billed for E/M visits (professional fee)"],
+    ["INCLUDE_PHYSICIAN_PROCEDURES","Physician procedures","What the physician billed for CPT procedures (professional fee)"],
+    ["INCLUDE_CHART_ADJUSTMENTS","Chart adjustments","Corrections made to a chart after it was already billed"],
+  ];
+  return `
+  ${stepHead("What should be in the report?","Check anything you want included. If you're unsure, checking everything is a safe choice — you can always narrow it down later.","CONFIGURATION_LOADED")}
+  ${autofillBar(0,"Not sure which to pick? We'll check the common ones for you.")}
+  <div class="choice-grid">
+    ${items.map(([key,label,desc])=>`
+      <label class="choice ${state[key]?'checked':''}">
+        <input type="checkbox" ${state[key]?'checked':''} onchange="toggleFlag('${key}')">
+        <div><div class="lab">${label}</div><div class="desc">${desc}</div></div>
+      </label>`).join("")}
+  </div>
+  <div class="hint" style="margin-top:12px;">Tip: "Facility" and "physician" are two separate bills for the same visit — most people want both unless someone specifically asked for just one.</div>`;
+}
+function toggleFlag(key){ state[key] = !state[key]; render(); }
+
+function renderFilters(){
+  return `
+  ${stepHead("Narrow it down (optional) & protect patient data","Everything on this step is optional except patient-data protection, which is on by default. Skip anything you don't need — leaving a filter blank just means \"don't filter on this.\"","DATA_FILTERED")}
+  ${autofillBar(1,"In a hurry? We'll pick common statuses and keep patient data protected.")}
+
+  <div class="field">
+    <label>Only a specific procedure code range? ${qmark("CPT/HCPCS codes identify the specific service or procedure billed — e.g. 99284 is an ER visit. Leave both boxes blank to include every code with no restriction. Only fill this in if someone gave you a specific range.")} <span style="font-weight:400;color:var(--ink-soft);">— leave blank for no restriction</span></label>
+    <div class="row2">
+      <input id="f-cptlow" type="text" maxlength="5" placeholder="Lowest code, e.g. 99202" value="${esc(state.CPT_LOW)}">
+      <input id="f-cpthigh" type="text" maxlength="5" placeholder="Highest code, e.g. 99499" value="${esc(state.CPT_HIGH)}">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Only certain chart statuses? ${qmark("A chart moves through stages as it's worked: WIP (in progress) → Coded → QA Review → Ready to Submit → Submitted → Billed. Leaving nothing checked includes charts at every stage.")} <span style="font-weight:400;color:var(--ink-soft);">— leave all unchecked for every status</span></label>
+    <div class="choice-grid">
+      ${STATUS_OPTIONS.map(s=>`
+        <label class="choice ${state.CHART_STATUSES.includes(s)?'checked':''}">
+          <input type="checkbox" ${state.CHART_STATUSES.includes(s)?'checked':''} onchange="toggleStatus('${s}')">
+          <div class="lab">${s}</div>
+        </label>`).join("")}
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Which date should we filter by? ${qmark("Date of Service is when the patient was seen. Sent Date is when the chart was sent for billing — these can land in different months near month-end, so pick whichever one matters for your report.")}</label>
+    <div class="row3">
+      <select id="f-datebasis" onchange="state.DATE_BASIS=this.value;render()">
+        ${DATE_BASIS_OPTIONS.map(o=>`<option ${state.DATE_BASIS===o?'selected':''}>${o}</option>`).join("")}
+      </select>
+      <input id="f-dstart" type="date" value="${state.DATE_START}" title="Start date (optional)">
+      <input id="f-dend" type="date" value="${state.DATE_END}" title="End date (optional)">
+    </div>
+    <div class="hint">Leave the dates blank to include every date — you can always narrow it down when you actually run the report.</div>
+  </div>
+
+  <div class="field">
+    <label for="f-facility-select">Which facility or facilities? ${qmark("Pick one facility, choose \"All authorized facilities\" as a safe default, or choose Custom to type your own list — you'll only ever see facilities you're authorized to access anyway.")}</label>
+    <select id="f-facility-select" onchange="handleFacilitySelect(this.value)">
+      ${FACILITY_OPTIONS.map(f=>`<option value="${esc(f)}" ${state.FACILITY_SCOPE===f?'selected':''}>${esc(f)}</option>`).join("")}
+      <option value="__custom__" ${!FACILITY_OPTIONS.includes(state.FACILITY_SCOPE)?'selected':''}>Custom / multiple facilities…</option>
+    </select>
+    ${!FACILITY_OPTIONS.includes(state.FACILITY_SCOPE) ? `
+    <input id="f-facility" type="text" style="margin-top:8px;" placeholder="e.g. TIA - Playa Vista, TIA - West Hollywood" value="${esc(state.FACILITY_SCOPE)}">
+    ` : ""}
+  </div>
+
+  <label class="choice ${state.MASK_PHI?'checked':''}" style="max-width:460px;">
+    <input type="checkbox" ${state.MASK_PHI?'checked':''} onchange="state.MASK_PHI=this.checked;render()">
+    <div><div class="lab">Keep patient names and MRNs masked ${qmark("Masked means names show as an initial + period (e.g. \"A. Reyes\") and medical record numbers show only the last 4 digits. This protects patient privacy and is on by default — most reports should keep this checked.")}</div><div class="desc">Recommended — protects patient privacy in the file</div></div>
+  </label>
+  ${!state.MASK_PHI ? `<div class="phi-banner">⚠ You've turned off patient-data masking. Only do this if you specifically need full names/MRNs and you're sure the file's destination is secure. This is logged on the real system.</div>` : ""}
+  `;
+}
+function toggleStatus(s){
+  const i = state.CHART_STATUSES.indexOf(s);
+  if(i>-1) state.CHART_STATUSES.splice(i,1); else state.CHART_STATUSES.push(s);
+  render();
+}
+function handleFacilitySelect(v){
+  state.FACILITY_SCOPE = (v === "__custom__") ? "" : v;
+  render();
+}
+
+function renderColumns(){
+  const allFieldIds = Object.values(FIELD_LIBRARY).flat().map(f=>f.id);
+  const allSelected = allFieldIds.length>0 && allFieldIds.every(id=>state.COLUMNS.some(c=>c.fieldId===id));
+
+  const libHtml = Object.entries(FIELD_LIBRARY).map(([group,fields])=>{
+    const groupIds = fields.map(f=>f.id);
+    const groupAllSelected = groupIds.every(id=>state.COLUMNS.some(c=>c.fieldId===id));
+    return `
+    <div class="lib-group">
+      <div class="lib-group-head">
+        <div class="lib-group-title">${group}</div>
+        <label class="group-select-all"><input type="checkbox" ${groupAllSelected?'checked':''} onchange="selectAllInGroup('${group}',this.checked)"> Select all</label>
+      </div>
+      ${fields.map(f=>{
+        const checked = state.COLUMNS.some(c=>c.fieldId===f.id);
+        return `<label class="lib-item">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleField(${f.id})">
+          <div class="lib-item-info"><div class="nm">${f.name}${f.phi?' <span style="color:var(--amber);font-size:10px;">PHI</span>':''}</div><div class="id">FIELD_ID ${f.id}</div></div>
+        </label>`;
+      }).join("")}
+    </div>`;
+  }).join("");
+
+  const selHtml = state.COLUMNS.length ? state.COLUMNS.map((c,i)=>{
+    const f = FIELD_BY_ID[c.fieldId];
+    const isAdded = state.BASED_ON_REPORT && !state.TEMPLATE_BASE_FIELD_IDS.includes(c.fieldId);
+    return `<div class="sel-item ${isAdded?'added':''}" draggable="true"
+        ondragstart="dragStart(event,${i})" ondragover="dragOverItem(event,${i})"
+        ondragleave="dragLeaveItem(event)" ondrop="dropItem(event,${i})" ondragend="dragEndItem(event)">
+      <div class="sel-item-top">
+        <div class="drag-row"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="ord">${i+1}</span><span class="nm">${f.name}</span>${isAdded?'<span class="added-tag">+ Added</span>':''}</div>
+        <div class="sel-item-actions">
+          <button title="Remove" onclick="removeColumn(${i})">✕</button>
+        </div>
+      </div>
+      <div class="mini-grid">
+        <div><label>Caption</label><input type="text" maxlength="50" value="${esc(c.caption)}" onchange="updateColumn(${i},'caption',this.value)"></div>
+        <div><label>Width</label><input type="number" min="4" max="80" value="${c.width}" onchange="updateColumn(${i},'width',this.value)"></div>
+      </div>
+      <div style="margin-top:8px;"><label>Format string <span style="font-weight:400;color:var(--ink-soft);">(optional — e.g. MM/dd/yyyy, 0.00)</span></label>
+        <input type="text" maxlength="128" value="${esc(c.format)}" placeholder="leave blank for default" onchange="updateColumn(${i},'format',this.value)"></div>
+    </div>`;
+  }).join("") : `<div class="empty-note">No columns yet — check fields from the library on the left. Order here becomes EXPORT_COLUMN.COLUMN_ORDER.</div>`;
+
+  const originNote = state.BASED_ON_REPORT
+    ? `<div class="origin-note">📋 Starting from <b>${esc(state.BASED_ON_REPORT)}</b> — its starting columns are shown as-is; anything you add is tagged <span class="added-tag" style="position:relative;">+ Added</span> so it's clear what's been extended.</div>`
+    : `<div class="origin-note custom">✍️ This is a custom pull — not based on a starting view.</div>`;
+
+  let suggestionHtml = "";
+  if(!state.BASED_ON_REPORT){
+    const match = bestMatchFor(scopeSignatureOf(state), state.CHART_STATUSES);
+    if(match && match.score >= 2){
+      const missing = match.fieldIds.filter(id=>!state.COLUMNS.some(c=>c.fieldId===id)).slice(0,6);
+      if(missing.length){
+        suggestionHtml = `<div class="suggest-box">
+          <div class="suggest-title">💡 What you've set up so far is closest to the <b>${esc(match.name)}</b> view. Fields it uses that you haven't added yet:</div>
+          <div class="suggest-chips">${missing.map(id=>`<button class="chip" onclick="toggleField(${id})">+ ${esc(FIELD_BY_ID[id].name)}</button>`).join("")}</div>
+        </div>`;
+      }
+    }
+  }
+
+  return `
+  ${stepHead("Which columns should show up?","Check anything you want as a column in the file — use \"Select all\" on a group if you want everything from it. Drag your selected columns by the ⠿ handle to put them in the order you want.","CONFIGURATION_LOADED")}
+  ${originNote}
+  ${suggestionHtml}
+  ${autofillBar(2,"Don't want to pick fields one by one? We'll add a sensible starter set.")}
+  <div class="lib-wrap">
+    <div class="lib-col">
+      <div class="lib-top-row">
+        <h3>Available fields</h3>
+        <label class="select-all-top"><input type="checkbox" ${allSelected?'checked':''} onchange="selectAllFields(this.checked)"> Select all fields</label>
+      </div>
+      ${libHtml}
+    </div>
+    <div class="sel-col"><h3>Your columns, in order (${state.COLUMNS.length}) <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">— drag ⠿ to reorder</span></h3>${selHtml}</div>
+  </div>`;
+}
+function toggleField(fieldId){
+  const idx = state.COLUMNS.findIndex(c=>c.fieldId===fieldId);
+  if(idx>-1){
+    state.COLUMNS.splice(idx,1);
+  } else {
+    const f = FIELD_BY_ID[fieldId];
+    state.COLUMNS.push({fieldId, caption:f.name, width:18, format:""});
+  }
+  render();
+}
+function selectAllInGroup(group, checked){
+  const ids = FIELD_LIBRARY[group].map(f=>f.id);
+  if(checked){
+    ids.forEach(id=>{
+      if(!state.COLUMNS.some(c=>c.fieldId===id)){
+        const f = FIELD_BY_ID[id];
+        state.COLUMNS.push({fieldId:id, caption:f.name, width:18, format:""});
+      }
+    });
+  } else {
+    state.COLUMNS = state.COLUMNS.filter(c=>!ids.includes(c.fieldId));
+  }
+  render();
+}
+function selectAllFields(checked){
+  if(checked){
+    Object.values(FIELD_LIBRARY).flat().forEach(f=>{
+      if(!state.COLUMNS.some(c=>c.fieldId===f.id)){
+        state.COLUMNS.push({fieldId:f.id, caption:f.name, width:18, format:""});
+      }
+    });
+  } else {
+    state.COLUMNS = [];
+  }
+  render();
+}
+
+/* Drag-and-drop reordering of selected columns */
+let dragSrcIndex = null;
+function dragStart(e, i){
+  dragSrcIndex = i;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", String(i));
+  e.currentTarget.classList.add("dragging");
+}
+function dragOverItem(e, i){
+  e.preventDefault();
+  e.currentTarget.classList.add("drag-over");
+}
+function dragLeaveItem(e){
+  e.currentTarget.classList.remove("drag-over");
+}
+function dropItem(e, i){
+  e.preventDefault();
+  e.currentTarget.classList.remove("drag-over");
+  if(dragSrcIndex === null || dragSrcIndex === i) return;
+  const moved = state.COLUMNS.splice(dragSrcIndex, 1)[0];
+  state.COLUMNS.splice(i, 0, moved);
+  dragSrcIndex = null;
+  render();
+}
+function dragEndItem(e){
+  document.querySelectorAll(".sel-item").forEach(el=>el.classList.remove("dragging","drag-over"));
+  dragSrcIndex = null;
+}
+function updateColumn(i,key,val){
+  state.COLUMNS[i][key] = key==='width' ? (parseInt(val)||18) : val;
+  render();
+}
+
+function renderLayout(){
+  const isExcel = state.EXPORT_FORMAT === "EXCEL";
+  return `
+  ${stepHead("A few last touches","This step is almost entirely optional — the defaults work fine for most reports. Only open the advanced section if someone specifically asked for exact cell placement.","FILE_GENERATED")}
+  ${autofillBar(3,"Happy with the defaults? This one-click fill covers this whole step.")}
+  <div class="field">
+    <label for="f-fname">What should the downloaded file be named? ${qmark("These placeholders get swapped for real values automatically: {ReportName} becomes the report's name, {FacilityCode} becomes the facility's short code, and {YYYYMMDD} becomes today's date.")}</label>
+    <input id="f-fname" type="text" maxlength="128" value="${esc(state.FILE_NAMING_CONVENTION)}">
+    <div class="hint">The default pattern works for almost everyone — no need to change it.</div>
+  </div>
+  <div class="row2">
+    <label class="choice ${state.GENERATE_COLUMN_HEADINGS?'checked':''}">
+      <input type="checkbox" ${state.GENERATE_COLUMN_HEADINGS?'checked':''} onchange="state.GENERATE_COLUMN_HEADINGS=this.checked;render()">
+      <div><div class="lab">Add column headers</div><div class="desc">Recommended — labels each column so it's readable</div></div>
+    </label>
+    <label class="choice ${state.APPEND_DATA?'checked':''}">
+      <input type="checkbox" ${state.APPEND_DATA?'checked':''} onchange="state.APPEND_DATA=this.checked;render()">
+      <div><div class="lab">Add to an existing file next time</div><div class="desc">Only turn on if you're building the same file repeatedly</div></div>
+    </label>
+  </div>
+
+  ${isExcel ? `
+  <details class="advanced">
+    <summary>Advanced: exact Excel cell placement (most people can skip this)</summary>
+    <div class="adv-body">
+      <div class="row3">
+        <div class="field"><label for="f-srow">Starting row</label><input id="f-srow" type="number" min="1" value="${state.EXCEL_STARTING_ROW}"></div>
+        <div class="field"><label for="f-scol">Starting column</label><input id="f-scol" type="number" min="1" value="${state.EXCEL_STARTING_COLUMN}"></div>
+        <div class="field"><label for="f-page">Sheet name</label><input id="f-page" type="text" maxlength="50" value="${esc(state.EXCEL_PAGE_NAME)}"></div>
+      </div>
+      <div class="field"><label for="f-template">Excel template name <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+        <input id="f-template" type="text" maxlength="256" placeholder="e.g. Lifepoint_Billing_Correction_Template" value="${esc(state.TEMPLATE_NAME)}">
+      </div>
+    </div>
+  </details>` : `<div class="hint" style="margin-top:8px;">These extra Excel options only show up when your format is Excel — you chose ${state.EXPORT_FORMAT} on step 1.</div>`}
+  `;
+}
+
+function renderReview(){
+  const rows = buildPreviewRows(6);
+  const cols = state.COLUMNS;
+  const checks = [
+    {ok: !!state.NAME.trim(), label:"Your report has a name"},
+    {ok: cols.length>0, label:"At least one column is selected", goto:2},
+  ];
+  const allGood = checks.every(c=>c.ok);
+  const checklistHtml = allGood
+    ? `<div class="all-good">🎉 Everything's set — you're ready to download.</div>`
+    : `<div class="checklist">${checks.map(c=>`
+        <div class="check-row">
+          <div class="cl"><span class="badge ${c.ok?'ok':'warn'}">${c.ok?'✓':'!'}</span>${c.label}</div>
+          ${c.ok || c.goto===undefined?'':`<button class="fixbtn" onclick="current=${c.goto};render()">Go fix it</button>`}
+        </div>`).join("")}</div>`;
+  return `
+  ${stepHead("Name it, then take one last look","Give your pull a name and pick a file format, confirm everything below, then download. Nothing is final until you click a button.","EXPORT_COMPLETED")}
+
+  <div class="field">
+    <label for="f-name">What should this data pull be called?</label>
+    <input id="f-name" type="text" maxlength="128" placeholder="e.g. TIA Playa Vista — Quality Performance by Facility" value="${esc(state.NAME)}">
+    <div class="hint">This is just a label so you (and your team) can find it later.</div>
+  </div>
+  <div class="field">
+    <label for="f-desc">What's it for? <span style="font-weight:400;color:var(--ink-soft);">(optional, but helpful)</span></label>
+    <textarea id="f-desc" maxlength="256" placeholder="e.g. Monthly export for the billing team, requested by..." >${esc(state.DESCRIPTION)}</textarea>
+    <div class="hint">A short note for your future self or teammates — totally optional.</div>
+  </div>
+  <div class="field">
+    <label>How do you want the file? ${qmark("Excel is the safest default — it opens on any work computer and looks like a spreadsheet. CSV is a plain text version of the same data. JSON is only for feeding another system automatically — skip it unless someone asked for it by name.")}</label>
+    <div class="fmt-grid">
+      ${fmtCard("EXCEL","Excel","Best default — opens like a spreadsheet")}
+      ${fmtCard("CSV","CSV","Plain text version of the same data")}
+      ${fmtCard("JSON","JSON","Only if another system needs to read it")}
+    </div>
+  </div>
+
+  ${checklistHtml}
+
+  <div class="review-grid">
+    <div class="review-block">
+      <h4>Report</h4>
+      <div class="review-list">
+        <div><span>Name</span><span>${esc(state.NAME)||"—"}</span></div>
+        <div><span>Based on</span><span>${state.BASED_ON_REPORT ? esc(state.BASED_ON_REPORT) : "Custom pull"}</span></div>
+        <div><span>Format</span><span>${state.EXPORT_FORMAT}</span></div>
+        <div><span>Facility scope</span><span>${esc(state.FACILITY_SCOPE)}</span></div>
+        <div><span>Date basis</span><span>${state.DATE_BASIS}</span></div>
+        <div><span>Date range</span><span>${state.DATE_START||"any"} → ${state.DATE_END||"any"}</span></div>
+        <div><span>CPT range</span><span>${state.CPT_LOW||"—"} – ${state.CPT_HIGH||"—"}</span></div>
+        <div><span>PHI masking</span><span>${state.MASK_PHI?"On":"Off"}</span></div>
+      </div>
+    </div>
+    <div class="review-block">
+      <h4>Data scope</h4>
+      <div class="review-list">
+        <div><span>Facility services</span><span>${yn(state.INCLUDE_FACILITY_SERVICES)}</span></div>
+        <div><span>Facility procedures</span><span>${yn(state.INCLUDE_FACILITY_PROCEDURES)}</span></div>
+        <div><span>Physician services</span><span>${yn(state.INCLUDE_PHYSICIAN_SERVICES)}</span></div>
+        <div><span>Physician procedures</span><span>${yn(state.INCLUDE_PHYSICIAN_PROCEDURES)}</span></div>
+        <div><span>Chart adjustments</span><span>${yn(state.INCLUDE_CHART_ADJUSTMENTS)}</span></div>
+        <div><span>Chart statuses</span><span>${state.CHART_STATUSES.length?state.CHART_STATUSES.join(", "):"All"}</span></div>
+        <div><span>Columns</span><span>${cols.length}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h4 style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);margin:0 0 8px;">Sample preview (mock data)</h4>
+  ${cols.length ? `<div class="preview-wrap"><table class="preview">
+    <thead><tr>${cols.map(c=>`<th>${esc(c.caption)}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td class="${FIELD_BY_ID[c.fieldId].phi && state.MASK_PHI?'masked':''}">${r[c.fieldId]}</td>`).join("")}</tr>`).join("")}</tbody>
+  </table></div>` : `<div class="empty-note">Add columns on step 4 to see a sample preview.</div>`}
+
+  <div class="export-actions">
+    <button class="btn teal" onclick="downloadSample()" ${!cols.length?'disabled':''}>⬇ Download sample ${state.EXPORT_FORMAT==='JSON'?'.json':state.EXPORT_FORMAT==='CSV'?'.csv':'.xlsx'} file</button>
+    <button class="btn primary" onclick="downloadDefinition()">Download the full spec (.json)</button>
+    <button class="btn" onclick="copyForTicket()">Copy a plain-text summary</button>
+  </div>
+  <div class="footnote">The sample file uses made-up rows just to show the layout — no real chart or patient data is touched by this tool. Real exports return stored values only: no totals, rates, or other calculations are ever added. The "full spec" download has all the technical detail (matching Pulse's own EXPORT_DEFINITION / EXPORT_COLUMN format) in case you're handing this to someone else to build.</div>
+
+  <div class="sub-box">
+    <div class="sub-box-head">
+      <input type="checkbox" id="f-sub-enabled" ${state.SUBSCRIPTION.enabled?'checked':''} onchange="state.SUBSCRIPTION.enabled=this.checked;render()">
+      <label for="f-sub-enabled">📬 ${currentEditingSubId ? "Update this recurring subscription" : "Make this a recurring subscription"}</label>
+    </div>
+    <div class="hint" style="margin-left:26px;">Instead of (or in addition to) downloading once, save this report's settings so it can be sent out on a schedule. This is saved to your account — you can pause, edit, or delete it later from "Manage Subscriptions."</div>
+    ${state.SUBSCRIPTION.enabled ? `
+    <div class="row3">
+      <div class="field">
+        <label for="f-sub-freq">How often?</label>
+        <select id="f-sub-freq" onchange="state.SUBSCRIPTION.frequency=this.value;render()">
+          ${["Daily","Weekly","Monthly"].map(f=>`<option ${state.SUBSCRIPTION.frequency===f?'selected':''}>${f}</option>`).join("")}
+        </select>
+      </div>
+      ${state.SUBSCRIPTION.frequency==="Weekly" ? `
+      <div class="field">
+        <label for="f-sub-dow">On which day?</label>
+        <select id="f-sub-dow" onchange="state.SUBSCRIPTION.dayOfWeek=this.value;render()">
+          ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((d,i)=>`<option value="${i}" ${state.SUBSCRIPTION.dayOfWeek==String(i)?'selected':''}>${d}</option>`).join("")}
+        </select>
+      </div>` : ""}
+      ${state.SUBSCRIPTION.frequency==="Monthly" ? `
+      <div class="field">
+        <label for="f-sub-dom">On which day of the month?</label>
+        <input id="f-sub-dom" type="number" min="1" max="28" value="${state.SUBSCRIPTION.dayOfMonth}" onchange="state.SUBSCRIPTION.dayOfMonth=this.value;render()">
+        <div class="hint">Capped at 28 so it lands in every month.</div>
+      </div>` : ""}
+    </div>
+    <div class="field">
+      <label for="f-sub-recipients">Who should get it? <span style="font-weight:400;color:var(--ink-soft);">— email addresses, separated by commas</span></label>
+      <input id="f-sub-recipients" type="text" placeholder="e.g. jsmith@corrohealth.com, billing-team@corrohealth.com" value="${esc(state.SUBSCRIPTION.recipients)}" onchange="state.SUBSCRIPTION.recipients=this.value">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="f-sub-start">Start date <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+        <input id="f-sub-start" type="date" value="${state.SUBSCRIPTION.startDate}" onchange="state.SUBSCRIPTION.startDate=this.value">
+      </div>
+      <div class="field">
+        <label for="f-sub-end">End date</label>
+        <input id="f-sub-end" type="date" value="${state.SUBSCRIPTION.endDate}" onchange="state.SUBSCRIPTION.endDate=this.value" ${state.SUBSCRIPTION.noEndDate?'disabled':''}>
+        <div class="no-end-row">
+          <input type="checkbox" id="f-sub-noend" ${state.SUBSCRIPTION.noEndDate?'checked':''} onchange="state.SUBSCRIPTION.noEndDate=this.checked;render()">
+          <label for="f-sub-noend" style="font-weight:400;cursor:pointer;">No end date — keep sending until I pause or delete it</label>
+        </div>
+      </div>
+    </div>
+    <button class="btn primary" style="margin-top:6px;" onclick="saveSubscription()">💾 ${currentEditingSubId ? "Update subscription" : "Save subscription"}</button>
+    ` : ""}
+  </div>
+  `;
+}
+function yn(b){ return b ? '<span style="color:var(--teal);">Yes</span>' : '<span style="color:var(--ink-soft);">No</span>'; }
+
+/* ---------------------------------------------------------------
+   Mock preview data
+   -------------------------------------------------------------- */
+const MOCK = {
+  101:["***-4471","***-2290","***-8813","***-1027","***-6654","***-3390"],
+  102:["A. Reyes","M. Whitfield","D. Nguyen","J. Castillo","P. Okafor","R. Simmons"],
+  103:["1958-04-11","1971-09-02","1990-01-30","1963-12-19","1985-07-08","1977-03-24"],
+  104:["TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood"],
+  105:["TIA-PV","TIA-WH","TIA-PV","TIA-WH","TIA-PV","TIA-WH"],
+  106:["2026-06-02","2026-06-03","2026-06-03","2026-06-05","2026-06-06","2026-06-07"],
+  107:["ENC-30291","ENC-30304","ENC-30318","ENC-30322","ENC-30340","ENC-30355"],
+  108:["Discharged","Admitted","Discharged","Transferred","Discharged","Discharged"],
+  201:["99284","99283","99285","99282","99284","99283"],
+  202:["—","25","—","59","—","25"],
+  203:["—","—","—","—","—","—"],
+  204:["R07.9","J18.9","S06.0X0A","R10.9","I63.9","N39.0"],
+  205:["1","1","1","1","1","1"],
+  206:["$742.00","$518.00","$901.00","$412.00","$742.00","$518.00"],
+  207:["3.12","2.44","3.86","1.98","3.12","2.44"],
+  208:["—","—","Rebill — modifier added","—","—","—"],
+  301:["Submitted","QA Review","Coded","Billed","Submitted","Coded"],
+  302:["J. Alvarez","T. Brooks","J. Alvarez","S. Kim","T. Brooks","J. Alvarez"],
+  303:["2026-06-04","—","2026-06-04","2026-06-08","2026-06-07","—"],
+  304:["2026-06-03","2026-06-04","2026-06-04","2026-06-06","2026-06-07","2026-06-08"],
+  305:["SA-014","SA-021","SA-014","SA-021","SA-014","SA-021"],
+  401:["K. Diaz","—","K. Diaz","M. Ferris","—","K. Diaz"],
+  402:["Pass","—","Pass","Flagged","—","Pass"],
+  403:["—","—","—","MDM level mismatch","—","—"],
+  404:["C","A","A2","P","C","A"],
+  501:["—","—","Lifepoint","HCA","CHOA","CHOA"],
+  502:["CommonSpirit","CommonSpirit","Lifepoint","HCA","CHOA","CHOA"],
+  503:["0","5","2","3","1","4"],
+  504:["Full Service","Full Service","Full Service","SaaS","FS Automation","SaaS Automation"],
+  505:["South","South","West","South","South","South"],
+  506:["TX","TX","CA","VA","GA","GA"],
+  507:["ED","ED","ED","ED","ED","ED"],
+  508:["—","—","Community","Community","Academic","Academic"],
+  509:["EPIC","Allscripts Paragon","EPIC","Cerner","EPIC","EPIC"],
+  510:["$0.65","$2.45","$0.00","$0.00","$0.30","$0.00"],
+  511:["$0.00","$0.00","$0.00","$0.00","$0.00","$0.00"],
+  512:["$0.00","$0.00","$1.85","$0.00","$0.00","$0.00"],
+  513:["$0.00","$0.00","$0.42","$0.00","$0.00","$0.00"],
+  514:["$0.00","$0.00","$0.00","$0.00","$0.00","$0.00"],
+  515:["$0.00","$0.00","$0.00","$0.00","$0.00","$0.00"],
+  606:["Southeast","Southeast","West","Northeast","West","Southeast"],
+  816:["Zofran","Toradol","Rocephin","Benadryl","Solu-Medrol","Zofran"],
+  821:["Missing Signature","Query Outstanding","Missing Signature","Coding Review","Missing Signature","Query Outstanding"],
+  822:["Dr. Alvarez","Dr. Kim","Dr. Alvarez","Dr. Brooks","Dr. Ferris","Dr. Kim"],
+  831:["99284","99283","99285","99282","99284","99283"],
+  832:["99283","99283","99284","99282","99285","99282"],
+  833:["ED level mismatch","Match","ED level mismatch","Match","ED level mismatch","No facility procedure"],
+  834:["Y","N","Y","N","Y","Y"],
+  835:["Detailed","Expanded","Comprehensive","Problem Focused","Detailed","Expanded"],
+  836:["Detailed","Expanded","Comprehensive","Problem Focused","Detailed","Expanded"],
+  837:["Moderate","Low","High","Low","Moderate","Low"],
+  838:["Physician coded higher acuity","—","Reviewed — facility corrected","—","Pending reviewer comment","No matching facility charge"],
+};
+function buildPreviewRows(n){
+  const rows = [];
+  for(let i=0;i<n;i++){
+    const r = {};
+    state.COLUMNS.forEach(c=>{ r[c.fieldId] = (MOCK[c.fieldId]||[])[i] ?? "—"; });
+    rows.push(r);
+  }
+  return rows;
+}
+
+/* ---------------------------------------------------------------
+   Export actions
+   -------------------------------------------------------------- */
+function buildDefinitionObject(){
+  return {
+    EXPORT_DEFINITION: {
+      AGGREGATION: "none",
+      NAME: state.NAME,
+      DESCRIPTION: state.DESCRIPTION,
+      BASED_ON_REPORT: state.BASED_ON_REPORT || null,
+      USER_DEFINED: true,
+      EXPORT_FORMAT: state.EXPORT_FORMAT,
+      INCLUDE_FACILITY_SERVICES: state.INCLUDE_FACILITY_SERVICES,
+      INCLUDE_FACILITY_PROCEDURES: state.INCLUDE_FACILITY_PROCEDURES,
+      INCLUDE_PHYSICIAN_SERVICES: state.INCLUDE_PHYSICIAN_SERVICES,
+      INCLUDE_PHYSICIAN_PROCEDURES: state.INCLUDE_PHYSICIAN_PROCEDURES,
+      INCLUDE_CHART_ADJUSTMENTS: state.INCLUDE_CHART_ADJUSTMENTS,
+      CPT_LOW: state.CPT_LOW || null,
+      CPT_HIGH: state.CPT_HIGH || null,
+      GENERATE_COLUMN_HEADINGS: state.GENERATE_COLUMN_HEADINGS,
+      APPEND_DATA: state.APPEND_DATA,
+      FILE_NAMING_CONVENTION: state.FILE_NAMING_CONVENTION,
+      TEMPLATE_NAME: state.TEMPLATE_NAME || null,
+      EXCEL_STARTING_ROW: state.EXPORT_FORMAT==="EXCEL" ? state.EXCEL_STARTING_ROW : null,
+      EXCEL_STARTING_COLUMN: state.EXPORT_FORMAT==="EXCEL" ? state.EXCEL_STARTING_COLUMN : null,
+      EXCEL_PAGE_NAME: state.EXPORT_FORMAT==="EXCEL" ? state.EXCEL_PAGE_NAME : null,
+    },
+    RUNTIME_FILTERS: {
+      CHART_STATUSES: state.CHART_STATUSES,
+      DATE_BASIS: state.DATE_BASIS,
+      DATE_START: state.DATE_START || null,
+      DATE_END: state.DATE_END || null,
+      FACILITY_SCOPE: state.FACILITY_SCOPE,
+      MASK_PHI: state.MASK_PHI,
+    },
+    EXPORT_COLUMN: state.COLUMNS.map((c,i)=>({
+      COLUMN_ORDER: i+1,
+      EXPORT_FIELD_ID: c.fieldId,
+      FIELD_NAME: FIELD_BY_ID[c.fieldId].name,
+      CAPTION: c.caption,
+      FIELD_WIDTH: c.width,
+      FORMAT_STRING: c.format || null,
+    })),
+  };
+}
+function downloadDefinition(){
+  const obj = buildDefinitionObject();
+  const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json"});
+  triggerDownload(blob, (safeName(state.NAME)||"export_definition") + ".json");
+  toast("Export definition downloaded");
+}
+function downloadSample(){
+  const rows = buildPreviewRows(12);
+  const cols = state.COLUMNS;
+  const fname = safeName(state.NAME) || "report_sample";
+  if(state.EXPORT_FORMAT === "CSV"){
+    const header = cols.map(c=>csvEscape(c.caption)).join(",");
+    const body = rows.map(r=>cols.map(c=>csvEscape(r[c.fieldId])).join(",")).join("\n");
+    const blob = new Blob([header+"\n"+body], {type:"text/csv"});
+    triggerDownload(blob, fname+".csv");
+  } else if(state.EXPORT_FORMAT === "JSON"){
+    const data = rows.map(r=>{
+      const o = {};
+      cols.forEach(c=>o[c.caption]=r[c.fieldId]);
+      return o;
+    });
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    triggerDownload(blob, fname+".json");
+  } else {
+    const aoa = [cols.map(c=>c.caption), ...rows.map(r=>cols.map(c=>r[c.fieldId]))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, (state.EXCEL_PAGE_NAME||"Sheet1").substring(0,31));
+    XLSX.writeFile(wb, fname+".xlsx");
+  }
+  toast("Sample file downloaded");
+}
+function copyForTicket(){
+  const d = buildDefinitionObject();
+  const lines = [
+    `Report: ${state.NAME||"(unnamed)"}`,
+    `Description: ${state.DESCRIPTION||"—"}`,
+    `Format: ${state.EXPORT_FORMAT}`,
+    `Facility scope: ${state.FACILITY_SCOPE}`,
+    `Date basis: ${state.DATE_BASIS} (${state.DATE_START||"any"} → ${state.DATE_END||"any"})`,
+    `CPT range: ${state.CPT_LOW||"—"} to ${state.CPT_HIGH||"—"}`,
+    `Chart statuses: ${state.CHART_STATUSES.length?state.CHART_STATUSES.join(", "):"All"}`,
+    `Data scope: ${["INCLUDE_FACILITY_SERVICES","INCLUDE_FACILITY_PROCEDURES","INCLUDE_PHYSICIAN_SERVICES","INCLUDE_PHYSICIAN_PROCEDURES","INCLUDE_CHART_ADJUSTMENTS"].filter(k=>state[k]).join(", ") || "none selected"}`,
+    `PHI masking: ${state.MASK_PHI?"On":"Off"}`,
+    `Columns (${d.EXPORT_COLUMN.length}): ${d.EXPORT_COLUMN.map(c=>c.CAPTION).join(" | ")}`,
+    `File naming: ${state.FILE_NAMING_CONVENTION}`,
+  ];
+  const text = lines.join("\n");
+  navigator.clipboard.writeText(text).then(()=>toast("Summary copied — paste into a RAP ticket")).catch(()=>toast("Copy failed — select and copy manually"));
+}
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function safeName(s){ return (s||"").trim().replace(/[^a-z0-9\-_]+/gi,"_").replace(/^_+|_+$/g,""); }
+function csvEscape(v){
+  v = String(v ?? "");
+  return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+}
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+/* ---------------------------------------------------------------
+   Inspector panel
+   -------------------------------------------------------------- */
+function renderInspector(){
+  const c = state;
+  const boolRow = (label,val) => `<div class="insp-row"><span class="k">${label}</span><span class="v ${val?'bool-true':'bool-false'}">${val ? 'true' : 'false'}</span></div>`;
+  const valRow = (label,val) => `<div class="insp-row"><span class="k">${label}</span><span class="v ${val?'':'empty'}">${val ? esc(String(val)) : 'null'}</span></div>`;
+
+  return `
+  <div class="insp-head"><span class="tbl">EXPORT_DEFINITION</span><span class="pk">PK · EXPORT_DEFINITION_ID (pending)</span></div>
+
+  <div class="insp-section">
+    <div class="insp-section-title">Identity</div>
+    ${valRow("NAME", c.NAME)}
+    ${valRow("DESCRIPTION", c.DESCRIPTION)}
+    ${valRow("BASED_ON_REPORT", c.BASED_ON_REPORT || "Custom (not based on an existing report)")}
+    ${boolRow("USER_DEFINED", true)}
+    ${valRow("EXPORT_FORMAT_ID", c.EXPORT_FORMAT)}
+  </div>
+
+  <div class="insp-section">
+    <div class="insp-section-title">Content flags</div>
+    ${boolRow("INCLUDE_FACILITY_SERVICES", c.INCLUDE_FACILITY_SERVICES)}
+    ${boolRow("INCLUDE_FACILITY_PROCEDURES", c.INCLUDE_FACILITY_PROCEDURES)}
+    ${boolRow("INCLUDE_PHYSICIAN_SERVICES", c.INCLUDE_PHYSICIAN_SERVICES)}
+    ${boolRow("INCLUDE_PHYSICIAN_PROCEDURES", c.INCLUDE_PHYSICIAN_PROCEDURES)}
+    ${boolRow("INCLUDE_CHART_ADJUSTMENTS", c.INCLUDE_CHART_ADJUSTMENTS)}
+  </div>
+
+  <div class="insp-section">
+    <div class="insp-section-title">Filtering</div>
+    ${valRow("CPT_LOW", c.CPT_LOW)}
+    ${valRow("CPT_HIGH", c.CPT_HIGH)}
+    ${valRow("CHART_STATUSES", c.CHART_STATUSES.length?c.CHART_STATUSES.join(", "):"")}
+    ${valRow("DATE_BASIS", c.DATE_BASIS)}
+    ${boolRow("MASK_PHI", c.MASK_PHI)}
+  </div>
+
+  <div class="insp-section">
+    <div class="insp-section-title">File handling</div>
+    ${boolRow("GENERATE_COLUMN_HEADINGS", c.GENERATE_COLUMN_HEADINGS)}
+    ${boolRow("APPEND_DATA", c.APPEND_DATA)}
+    ${valRow("FILE_NAMING_CONVENTION", c.FILE_NAMING_CONVENTION)}
+    ${c.EXPORT_FORMAT==="EXCEL" ? valRow("EXCEL_STARTING_ROW", c.EXCEL_STARTING_ROW) + valRow("EXCEL_STARTING_COLUMN", c.EXCEL_STARTING_COLUMN) + valRow("EXCEL_PAGE_NAME", c.EXCEL_PAGE_NAME) : ""}
+  </div>
+
+  <div class="insp-section">
+    <div class="insp-section-title">EXPORT_COLUMN rows (${c.COLUMNS.length})</div>
+    <div class="insp-cols">
+      ${c.COLUMNS.length ? c.COLUMNS.map((col,i)=>`<div class="insp-col-item"><span class="cn">${i+1}.</span> ${esc(col.caption)} <span style="color:var(--insp-label);">(FIELD_ID ${col.fieldId}${col.format?', fmt: '+esc(col.format):''})</span></div>`).join("") : `<div class="insp-col-item" style="font-style:italic;color:var(--insp-label);">no columns selected yet</div>`}
+    </div>
+  </div>
+
+  <div class="insp-foot">This panel mirrors the live EXPORT_DEFINITION / EXPORT_COLUMN record this wizard is building — useful to screenshot into a ticket or a spec doc.</div>
+  `;
+}
+
+/* ---------------------------------------------------------------
+   Sync inputs → state (delegated, so re-render doesn't lose focus badly)
+   -------------------------------------------------------------- */
+function wireInputs(){
+  const map = {
+    "f-name":"NAME", "f-desc":"DESCRIPTION", "f-cptlow":"CPT_LOW", "f-cpthigh":"CPT_HIGH",
+    "f-dstart":"DATE_START", "f-dend":"DATE_END", "f-facility":"FACILITY_SCOPE",
+    "f-fname":"FILE_NAMING_CONVENTION", "f-srow":"EXCEL_STARTING_ROW", "f-scol":"EXCEL_STARTING_COLUMN",
+    "f-page":"EXCEL_PAGE_NAME", "f-template":"TEMPLATE_NAME",
+  };
+  Object.entries(map).forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const evt = (el.tagName==='SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, ()=>{
+      state[key] = el.type==='number' ? (parseInt(el.value)||0) : el.value;
+      renderInspector(); // live update without full re-render / focus loss
+      document.getElementById('inspector').innerHTML = renderInspector();
+    });
+  });
+}
+
+/* ---------------------------------------------------------------
+   Main render
+   -------------------------------------------------------------- */
+const RENDERERS = [renderScope, renderFilters, renderColumns, renderLayout, renderReview];
+function render(){
+  maxReached = Math.max(maxReached, current);
+  renderRail();
+  const body = RENDERERS[current]();
+  const nav = `
+    <div class="toolbar">
+      <button class="btn ghost" onclick="prevStep()" ${current===0?'disabled':''}>← Back</button>
+      <button class="btn primary" onclick="nextStep()" ${current===STEPS.length-1?'disabled':''}>${current===STEPS.length-2? "Go to review →" : "Continue →"}</button>
+    </div>`;
+  document.getElementById('stepCard').innerHTML = body + (current===STEPS.length-1 ? "" : nav);
+  document.getElementById('inspector').innerHTML = renderInspector();
+  wireInputs();
+  window.scrollTo({top:0, behavior:"instant"});
+}
+function nextStep(){ if(current<STEPS.length-1){ current++; render(); } }
+function prevStep(){ if(current>0){ current--; render(); } }
+
+renderApp();
+</script>
+</body>
+</html>
