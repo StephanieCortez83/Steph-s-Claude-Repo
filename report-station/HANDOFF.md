@@ -163,3 +163,12 @@ Open questions: confirm which field IDs map to real EXPORT_FIELD rows; decide wh
 - Export route (`ACS_EXPORT_PATH`, default `/api/charts/export`) and auth scheme are guesses — confirm against the real controller.
 - Only the verified group can run through the backend; older field ids (101–838) are rejected.
 - Real query filters not yet in the UI: MRN, provider NPI, location, pending reason, assigned coder, etc.
+
+---
+
+## Update 3: Pulse 2.0 integration (menu item + rights)
+
+Decision: this becomes an extension of Pulse 2.0 — a menu item under **Analytics**, gated by a new user right, backed by
+a MediatR feature next to `ExportCharts`. See `pulse-integration/INTEGRATION.md`. The standalone `server.js` and the
+`index.html` prototype stay only as a demo; `pulse-integration/` supersedes them once merged into the Pulse repo.
+Real export route is `GET /api/charts/export` (the prototype's guess happened to match); the new feature is `POST /api/data-station/export`.
