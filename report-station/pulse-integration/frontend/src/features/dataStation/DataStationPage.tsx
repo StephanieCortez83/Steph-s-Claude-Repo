@@ -13,21 +13,31 @@ import {
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { useHasRight } from '../../hooks/useHasRight';
 import { UserRight } from '../../lib/userRights';
 import {
   DATE_BASIS_LABELS,
+  REPORT_DESCRIPTIONS,
+  REPORT_LABELS,
   validateForm,
   type DataStationFormState,
   type DateBasis,
+  type ReportType,
 } from './buildExportRequest';
 import { DataStationError, fetchFields, runExport, saveBlob, type DataStationFieldsDto } from './dataStationApi';
 
 const INITIAL: DataStationFormState = {
+  reportType: 'chart',
+  noteFrom: '',
+  noteTo: '',
+  categoryIds: '',
+  includeSystemNotes: true,
   facilities: '',
   statuses: '',
   dateBasis: 'dos',
@@ -44,6 +54,10 @@ const INITIAL: DataStationFormState = {
  */
 export default function DataStationPage() {
   const { getAccessToken } = useAuth();
+  // Held in a ref so an unstable getAccessToken identity can never retrigger the catalog fetch.
+  const tokenRef = useRef(getAccessToken);
+  tokenRef.current = getAccessToken;
+  const getToken = () => tokenRef.current();
   const canUse = useHasRight(UserRight.AllowAccessToDataStation);
   const canUnmask = useHasRight(UserRight.AllowDataStationUnmaskedPhi);
 
@@ -53,16 +67,19 @@ export default function DataStationPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [done, setDone] = useState<string | null>(null);
 
+  const reportType = form.reportType;
   useEffect(() => {
     if (!canUse) return;
     let cancelled = false;
-    fetchFields(getAccessToken)
+    setCatalog(null);
+    fetchFields(getToken, reportType)
       .then((c) => !cancelled && setCatalog(c))
       .catch((e: DataStationError) => !cancelled && setErrors([e.message, ...e.details]));
     return () => {
       cancelled = true;
     };
-  }, [canUse, getAccessToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getToken only reads the ref
+  }, [canUse, reportType]);
 
   const groups = useMemo(() => {
     const m = new Map<string, DataStationFieldsDto['fields']>();
@@ -83,6 +100,12 @@ export default function DataStationPage() {
     setDone(null);
     setForm((f) => ({ ...f, [k]: v }));
   };
+  // Each report has its own columns, so switching clears the selection.
+  const switchReport = (r: ReportType) => {
+    setDone(null);
+    setErrors([]);
+    setForm((f) => ({ ...f, reportType: r, columns: [] }));
+  };
   const toggleColumn = (key: string) =>
     set('columns', form.columns.includes(key) ? form.columns.filter((c) => c !== key) : [...form.columns, key]);
   const move = (i: number, d: -1 | 1) => {
@@ -97,7 +120,7 @@ export default function DataStationPage() {
     if (problems.length) return;
     setBusy(true);
     try {
-      const { blob, fileName } = await runExport(getAccessToken, form);
+      const { blob, fileName } = await runExport(getToken, form);
       saveBlob(blob, fileName);
       setDone(`Downloaded ${fileName}`);
     } catch (e) {
@@ -113,8 +136,19 @@ export default function DataStationPage() {
       <Typography variant="h5" sx={{ fontWeight: 700 }}>Data Station</Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         Pick your filters and columns. You get the rows exactly as Pulse stores them — no formulas, totals or calculations.
-        {catalog && ` Up to ${catalog.maxRows.toLocaleString()} rows per export.`}
+        {catalog && ` Up to ${catalog.maxRows.toLocaleString()} rows per export${form.reportType === 'logNotes' ? '; if more match, narrow your filters' : ''}.`}
       </Typography>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>What do you want to pull?</Typography>
+        <ToggleButtonGroup exclusive value={form.reportType} onChange={(_, v: ReportType | null) => v && switchReport(v)}
+          aria-label="Report type" data-testid="data-station-report-type">
+          {(Object.keys(REPORT_LABELS) as ReportType[]).map((r) => (
+            <ToggleButton key={r} value={r} sx={{ textTransform: 'none', px: 2 }}>{REPORT_LABELS[r]}</ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+        <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>{REPORT_DESCRIPTIONS[form.reportType]}</Typography>
+      </Paper>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>1. Which charts?</Typography>
@@ -141,6 +175,23 @@ export default function DataStationPage() {
             onChange={(e) => set('dateTo', e.target.value)} fullWidth />
         </Stack>
       </Paper>
+
+      {form.reportType === 'logNotes' && (
+        <Paper sx={{ p: 2, mb: 2 }} data-testid="data-station-note-filters">
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Which notes? <Typography component="span" color="text.secondary">(optional)</Typography></Typography>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <TextField type="date" label="Notes created from" slotProps={{ inputLabel: { shrink: true } }} value={form.noteFrom}
+              onChange={(e) => set('noteFrom', e.target.value)} fullWidth />
+            <TextField type="date" label="Notes created to" slotProps={{ inputLabel: { shrink: true } }} value={form.noteTo}
+              onChange={(e) => set('noteTo', e.target.value)} fullWidth />
+            {/* TODO: replace with a category picker (reference-data log-note categories). */}
+            <TextField label="Category IDs" helperText="Comma-separated; blank = all categories" value={form.categoryIds}
+              onChange={(e) => set('categoryIds', e.target.value)} fullWidth />
+          </Stack>
+          <FormControlLabel sx={{ mt: 1 }} label="Include system-generated notes"
+            control={<Checkbox checked={form.includeSystemNotes} onChange={(e) => set('includeSystemNotes', e.target.checked)} />} />
+        </Paper>
+      )}
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>2. Which columns?</Typography>
@@ -188,7 +239,7 @@ export default function DataStationPage() {
           </FormControl>
           <FormControlLabel
             control={<Checkbox checked={form.maskPhi} disabled={!canUnmask} onChange={(e) => set('maskPhi', e.target.checked)} />}
-            label={canUnmask ? 'Mask patient information (recommended)' : 'Patient information is masked (you don’t have the right to unmask it)'} />
+            label={canUnmask ? (form.reportType === 'logNotes' ? 'Mask patient information and notes written by people (recommended)' : 'Mask patient information (recommended)') : 'Patient information is masked (you don’t have the right to unmask it)'} />
         </Stack>
         {!form.maskPhi && <Alert severity="warning" sx={{ mt: 1 }}>Masking is off — the file will contain full patient identifiers. Make sure its destination is secure.</Alert>}
       </Paper>

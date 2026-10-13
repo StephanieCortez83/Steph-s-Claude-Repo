@@ -17,6 +17,11 @@ public enum PhiKind
 	YearOnly,
 	/// <summary>Free text that may contain PHI — withheld entirely while masking is on.</summary>
 	FreeText,
+	/// <summary>
+	/// Text a person typed (log-note summary/detail). Withheld while masking is on, except for
+	/// system-generated notes, whose text is produced by Pulse itself.
+	/// </summary>
+	UserAuthoredText,
 }
 
 /// <summary>

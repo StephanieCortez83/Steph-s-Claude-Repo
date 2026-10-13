@@ -72,7 +72,7 @@ public sealed class ExportDataStationQueryHandlerTests
 	{
 		string csv = await RunCsv(false, true, "clientComment");
 		Assert.Contains("\"call back, re: =SUM(A1)\"", csv);           // mid-string '=' is harmless
-		Assert.Equal("'=1+1", ExportDataStationQueryHandler.CsvEscape("=1+1")); // leading '=' is not
+		Assert.Equal("'=1+1", DataStationFileWriter.CsvEscape("=1+1")); // leading '=' is not
 	}
 
 	[Fact]

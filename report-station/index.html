@@ -626,6 +626,18 @@ if(!window.storage){
 }
 
 const FIELD_LIBRARY = {
+  // Verified: the stored LOG_NOTE fields shown on a chart's Log Notes page (one row per note).
+  "Chart Log Notes (verified)": [
+    {id: 931, name: "Log Note ID", phi:false},
+    {id: 932, name: "Note Category", phi:false},
+    {id: 933, name: "Note Summary", phi:true},
+    {id: 934, name: "Note Detail", phi:true},
+    {id: 935, name: "System Generated", phi:false},
+    {id: 936, name: "Note Created", phi:false},
+    {id: 937, name: "Note Completed", phi:false},
+    {id: 938, name: "Completed By", phi:false},
+    {id: 939, name: "Chart Event Time", phi:false},
+  ],
   // Verified: the exact columns the ACS.Modules.Charts ExportCharts handler returns today.
   "Chart Search Export (verified)": [
     {id: 901, name: "Facility", phi:false},
@@ -818,6 +830,12 @@ function applyPreset(o, ids){
 }
 
 const PRESETS = {
+  chartLogNotes: {
+    icon:"📝", title:"Chart Log Notes",
+    blurb:"One row per log note — category, summary, detail, who completed it, and when — with the chart it belongs to.",
+    apply(){ applyPreset({NAME:"Chart Log Notes", DESCRIPTION:"Log notes for the selected charts: one row per note, stored values only.",
+      INCLUDE_FACILITY_PROCEDURES:true, INCLUDE_PHYSICIAN_SERVICES:true, INCLUDE_PHYSICIAN_PROCEDURES:true, EXPORT_FORMAT:"CSV", EXCEL_PAGE_NAME:"Log Notes"}, [903,901,914,936,932,933,934,938,935]); }
+  },
   chartSearchExport: {
     icon:"📋", title:"Chart Search Export (all columns)",
     blurb:"Every column the live Pulse chart export returns today — verified against the ExportCharts code.",
@@ -1834,6 +1852,15 @@ function yn(b){ return b ? '<span style="color:var(--teal);">Yes</span>' : '<spa
    Mock preview data
    -------------------------------------------------------------- */
 const MOCK = {
+  931:["88120041","88120042","88120043","88120044","88120045","88120046"],
+  932:["Completed","Coder Note","Approved","Client Note","Demographics Completed","Coder Note"],
+  933:["Chart completed","Needs provider query","Chart approved","Client asked for re-review","Demographics completed","Query answered"],
+  934:["—","Level 4 vs 5 — awaiting provider","—","Please recheck modifier","—","Provider confirmed level 4"],
+  935:["Yes","No","Yes","No","Yes","No"],
+  936:["2026-06-04 09:12","2026-06-04 10:40","2026-06-05 08:03","2026-06-05 13:22","2026-06-08 16:21","2026-06-09 10:55"],
+  937:["2026-06-04 09:12","—","2026-06-05 08:03","—","2026-06-08 16:21","2026-06-09 10:55"],
+  938:["Alvarez, Jamie","Brooks, Taylor","Kim, Sam","Ferris, Morgan","Alvarez, Jamie","Brooks, Taylor"],
+  939:["2026-06-04 09:12","—","2026-06-05 08:03","—","2026-06-08 16:21","—"],
   901:["TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood","TIA - Playa Vista","TIA - West Hollywood"],
   902:["1048211","1048212","1048230","1048244","1048251","1048266"],
   903:["ENC-30291","ENC-30304","ENC-30318","ENC-30322","ENC-30340","ENC-30355"],

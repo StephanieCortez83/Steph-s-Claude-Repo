@@ -1,4 +1,4 @@
-import { buildExportRequest, type DataStationFormState } from './buildExportRequest';
+import { buildExportRequest, exportPath, type DataStationFormState, type ReportType } from './buildExportRequest';
 
 export interface DataStationField {
   key: string;
@@ -8,6 +8,7 @@ export interface DataStationField {
 }
 
 export interface DataStationFieldsDto {
+  report: ReportType;
   fields: DataStationField[];
   maxRows: number;
   maxColumns: number;
@@ -43,8 +44,8 @@ async function toError(res: Response): Promise<DataStationError> {
   }
 }
 
-export async function fetchFields(getToken: GetToken): Promise<DataStationFieldsDto> {
-  const res = await authedFetch(getToken, '/api/data-station/fields');
+export async function fetchFields(getToken: GetToken, report: ReportType = 'chart'): Promise<DataStationFieldsDto> {
+  const res = await authedFetch(getToken, `/api/data-station/fields?report=${encodeURIComponent(report)}`);
   if (!res.ok) throw await toError(res);
   return res.json();
 }
@@ -53,7 +54,7 @@ export async function runExport(
   getToken: GetToken,
   form: DataStationFormState,
 ): Promise<{ blob: Blob; fileName: string }> {
-  const res = await authedFetch(getToken, '/api/data-station/export', {
+  const res = await authedFetch(getToken, exportPath(form.reportType), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(buildExportRequest(form)),
@@ -61,7 +62,7 @@ export async function runExport(
   if (!res.ok) throw await toError(res);
   const disposition = res.headers.get('content-disposition') ?? '';
   const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
-  return { blob: await res.blob(), fileName: match?.[1] ?? `data-station-export.${form.format === 'excel' ? 'xlsx' : 'csv'}` };
+  return { blob: await res.blob(), fileName: match?.[1] ?? `${form.reportType === 'logNotes' ? 'data-station-log-notes' : 'data-station-export'}.${form.format === 'excel' ? 'xlsx' : 'csv'}` };
 }
 
 export function saveBlob(blob: Blob, fileName: string) {

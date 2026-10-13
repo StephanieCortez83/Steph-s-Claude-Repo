@@ -13,8 +13,11 @@ Every column is a stored value returned as-is — no formulas, totals, rates or 
 |---|---|
 | `database/RevCycleDB/migrations/V044_…__DataStation-AddRights.sql` (+ `U044_…`) | Adds rights **172** `AllowAccessToDataStation` and **173** `AllowDataStationUnmaskedPhi` to `DEFINED_RIGHT` (idempotent) |
 | `backend/modules/ACS.Modules.Charts/Features/ExportDataStation/` | `ExportDataStationQuery` (+ validator, handler) and `DataStationFields` (the column catalog + PHI masking) |
-| `backend/modules/ACS.Modules.Charts/Features/GetDataStationFields/` | Column catalog + limits for the UI |
-| `backend/ACS.Api/Endpoints/DataStationEndpoints.cs` | `GET /api/data-station/fields`, `POST /api/data-station/export` |
+| `backend/modules/ACS.Modules.Charts/Features/ExportDataStation/DataStationFileWriter.cs` | Shared CSV/Excel writer (text-only cells, formula-injection guard) used by every Data Station report |
+| `backend/modules/ACS.Modules.Charts/Features/ExportDataStationLogNotes/` | **Chart Log Notes report:** query, validator, handler, and its column catalog |
+| `backend/modules/ACS.Modules.Charts/DataAccess/IDataStationLogNoteDataAccess.cs`, `DataStationLogNoteDataAccess.cs` | Batched, inline-SQL read of log notes for many charts (mirrors `dbo.GetChartLogNotes`) |
+| `backend/modules/ACS.Modules.Charts/Features/GetDataStationFields/` | Column catalog + limits for the UI (`?report=chart\|logNotes`) |
+| `backend/ACS.Api/Endpoints/DataStationEndpoints.cs` | `GET /api/data-station/fields`, `POST /api/data-station/export`, `POST /api/data-station/log-notes/export` |
 | `backend/tests/ACS.Modules.Charts.Tests/Features/ExportDataStationQueryHandlerTests.cs` | Handler + validator tests |
 | `frontend/src/features/dataStation/` | `DataStationPage.tsx`, `dataStationApi.ts`, `buildExportRequest.ts` (+ vitest test) |
 
@@ -41,6 +44,12 @@ DataStationEndpoints.Map(app);
 ```
 MediatR handlers/validators in `ACS.Modules.Charts` are assumed to be picked up by the module's existing
 assembly scan (`ChartsModule.cs`); if registration is explicit, add the handler, the fields handler and the validator.
+
+### 3b. `backend/modules/ACS.Modules.Charts/ChartsModule.cs` — register the new data access
+`ChartsModule` registers services explicitly (it does not scan), so add next to `IChartLogNoteDataAccess`:
+```csharp
+		services.AddScoped<IDataStationLogNoteDataAccess, DataStationLogNoteDataAccess>();
+```
 
 ### 4. `frontend/src/components/AppShell/AppShell.tsx` — menu item, hidden without the right
 ```tsx
@@ -81,19 +90,39 @@ import DataStationPage from './features/dataStation/DataStationPage';
 Use the existing **Management ▸ Administration ▸ User Group Rights** screen to grant 172 to the user groups that should
 see it, and 173 only to the few who may export unmasked PHI.
 
+## Report types
+
+| Report | Rows | Selected by | Extra filters | Rights |
+|---|---|---|---|---|
+| **Chart data** | one per chart | chart filters (facilities, statuses, dates…) | — | 172 + 32 |
+| **Chart log notes** | one per log note (with its chart's context columns) | the same chart filters | note created from/to, category IDs, include system notes | 172 + 32 + **3 (Charts)** — the right `GetChartLogNotesQuery` already requires to read notes |
+
+Log-note columns: Log Note ID, Category, Summary, Detail, System Generated, Note Created, Note Completed, Completed By,
+Chart Event Time (the CHART_ACCESS timestamp Pulse shows for Completed/Approved/Demographics notes), plus Facility, Chart ID,
+Facility Chart ID, Facility Admin Chart ID, Date of Service, Chart Status, Physician, Patient Name, MRN.
+The report has no counts, durations or other derived values; charts with no matching notes produce no rows.
+
+How it runs: (1) the chart repository returns the user's *authorized* charts for the filters — facility authorization is
+therefore inherited, not re-implemented; (2) one batched query reads notes for exactly those charts (ID list passed as a single
+string and split with `STRING_SPLIT`, because Dapper's `IN @list` would exceed SQL Server's 2100-parameter limit at ~3000 charts);
+(3) rows are joined in memory and written by the shared file writer.
+
+**Limits are errors, not silent truncation:** > 3,001 charts or > 20,000 notes → a validation error asking the user to narrow filters.
+
 ## How access is enforced (defense in depth)
 
 | Layer | Check |
 |---|---|
 | Menu | link hidden unless user has 172 |
 | Page | "no access" message unless 172 |
-| API | `ExportDataStationQuery` has `[HasRight(172)]` **and** `[HasRight(32)]` (multiple attributes are AND-ed) |
+| API | `ExportDataStationQuery` has `[HasRight(172)]` **and** `[HasRight(32)]`; `ExportDataStationLogNotesQuery` adds `[HasRight(3)]` (multiple attributes are AND-ed) |
 | Data | `IChartSearchRepository.ExportAsync` still enforces facility authorization + bulk-search right, same as chart export |
 | PHI | masking is the default; `MaskPhi=false` is rejected in the handler unless the user holds 173 |
 
 ## Behaviors worth knowing
 - **Columns** = the columns the live chart export returns (30 of its 34; the four internal `*_ID` columns are left out).
 - **Row cap** 3001, same as chart export. The UI shows it; the response does not yet flag truncation.
+- **Log-note masking:** note *summary* and *detail* are shown for system-generated notes (Pulse writes that text) and **withheld for notes a person typed** while masking is on; patient name / MRN follow the rules below. This is a judgment call — free text can contain PHI — and needs compliance review.
 - **Masking:** name → initials, MRN / long patient ID → last 4, date of birth → year only, client comment / coder notes
   (free text, may contain PHI) → `[withheld]`. DOB and free-text rules go beyond `ExportChartsView`'s name + MRN rule — confirm with compliance.
 - **CSV/Excel injection:** stored text starting with `= + - @` is prefixed with `'` so opening the file never executes a formula.
@@ -107,12 +136,17 @@ see it, and 173 only to the few who may export unmasked PHI.
 4. Right numbers **172/173** are free in every environment; Flyway version `V044` is the next free one.
 5. MUI v6+ (`slotProps`), as already used in `AppShell.tsx`. Auth: `useAuth().getAccessToken()` returns a bearer token the API accepts.
 6. System.Text.Json (camelCase) binds the `ExportChartsQuery` record from the request body.
+7. `FluentValidation.ValidationException` thrown from a handler is turned into a 400 by existing middleware (used for the "too many rows" errors).
+8. `IDbSession`/`ACS.Shared.Data` and Dapper name mapping: the new SQL aliases every column to PascalCase so it does not depend on `MatchNamesWithUnderscores`.
+9. SQL Server compatibility level ≥ 130 (`STRING_SPLIT`) — implied by `CREATE OR ALTER` in existing migrations, but not confirmed.
+10. The `VW_ACS26_LOG_NOTE` view exposes `SYSTEM_DEFINED`, `CATEGORY_ID`, `CREATION_DATE_TIME` etc. exactly as `GetChartLogNotes.sql` uses them. Check the query plan on a production-size copy (an `OPTION (RECOMPILE)` is used for the optional filters).
 
 ## Open items
 - **Facility / status pickers.** The page takes facility and status **IDs as text**. Add `GET /api/data-station/options`
   (authorized facilities — reuse the facility-authorization query behind `IChartSearchRepository` — plus chart statuses)
   and swap the two text boxes for pickers (marked `TODO` in the page and endpoints file).
-- Truncation flag when the 3001-row cap is hit.
+- Log notes: category picker (reference-data `LogNoteCategoryDto`) instead of the Category IDs text box; filter by note text (existing `sp_LogNote_SearchDetail` shows a pattern); show chart-level filters that matter for notes (e.g. completed-by user).
+- Truncation flag when the 3001-row cap is hit (chart report; the log-notes report errors instead).
 - More filters from `ExportChartsQuery` (MRN, provider NPI, location, pending reason, assigned coder…).
 - Optional: Pulse's `REPORT_SUBSCRIPTION` for scheduled delivery; audit logging of unmasked exports.
 - Add a help page (`/help/...`) — `AppShell` links page help by pathname slug.

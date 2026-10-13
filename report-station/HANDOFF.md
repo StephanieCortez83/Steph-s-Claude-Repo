@@ -172,3 +172,14 @@ Decision: this becomes an extension of Pulse 2.0 — a menu item under **Analyti
 a MediatR feature next to `ExportCharts`. See `pulse-integration/INTEGRATION.md`. The standalone `server.js` and the
 `index.html` prototype stay only as a demo; `pulse-integration/` supersedes them once merged into the Pulse repo.
 Real export route is `GET /api/charts/export` (the prototype's guess happened to match); the new feature is `POST /api/data-station/export`.
+
+---
+
+## Update 4: Chart Log Notes as its own report build option
+
+- **Pulse integration:** the Data Station page now has a report-type switch (Chart data / Chart log notes). Log notes is one row per
+  note, with its own columns, note filters (date, category, include system notes), endpoint
+  (`POST /api/data-station/log-notes/export`) and limits. Details in `pulse-integration/INTEGRATION.md` ("Report types").
+- **Prototype:** new "Chart Log Notes (verified)" field group (ids 931–939) and a "Chart Log Notes" template (mock data only; `server.js`
+  tells you log notes need the Pulse integration).
+- Also fixed in the page: the column catalog re-fetched on every render if `getAccessToken` wasn't a stable function (found by the new component test).

@@ -50,7 +50,11 @@ function validate(spec){
   if(!d||!f) return ['body must be a wizard spec (EXPORT_DEFINITION, RUNTIME_FILTERS, EXPORT_COLUMN)'];
   if(d.AGGREGATION && d.AGGREGATION!=='none') errs.push('calculated/aggregated output is not supported');
   if(!cols.length) errs.push('select at least one column');
-  cols.forEach(c=>{ if(!FIELDS[c.EXPORT_FIELD_ID]) errs.push('field '+c.EXPORT_FIELD_ID+' is not an exportable raw field'); });
+  cols.forEach(c=>{
+    const id=c.EXPORT_FIELD_ID;
+    if(id>=931&&id<=939) errs.push('field '+id+' is a log-note field — log notes can only be exported through the Pulse 2.0 integration (pulse-integration/), not this demo server');
+    else if(!FIELDS[id]) errs.push('field '+id+' is not an exportable raw field');
+  });
   if(!DATE_PARAMS[f.DATE_BASIS]) errs.push('unsupported date basis: '+f.DATE_BASIS);
   if(!f.FACILITY_IDS||!f.FACILITY_IDS.length) errs.push('FACILITY_IDS required (the real query requires facility IDs)');
   return errs;
